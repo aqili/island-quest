@@ -59,6 +59,7 @@ export function createMathCastleScene(engine, onExit) {
   let flickerT     = 0;
 
   scene.registerBeforeRender(() => {
+    try {
     if (puzzleActive || switching) return;
     player.update();
 
@@ -109,6 +110,7 @@ export function createMathCastleScene(engine, onExit) {
         });
       }
     });
+    } catch (e) { console.error("MathCastle render error:", e); }
   });
 
   return scene;

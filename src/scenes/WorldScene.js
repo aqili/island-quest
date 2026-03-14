@@ -31,50 +31,24 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
   sunDir.intensity = 0.6;
   sunDir.diffuse   = new BABYLON.Color3(1.0, 0.95, 0.80);
 
-  // ── Sky dome ─────────────────────────────────────────────────────────────
-  const sky = BABYLON.MeshBuilder.CreateSphere("sky", { diameter: 350, sideOrientation: BABYLON.Mesh.BACKSIDE }, scene);
-  const skyMat = new BABYLON.StandardMaterial("skyMat", scene);
-  const skyTex = new BABYLON.GradientMaterial ? null : null; // fallback to manual
-  skyMat.diffuseColor  = new BABYLON.Color3(0.38, 0.68, 0.96);
-  skyMat.emissiveColor = new BABYLON.Color3(0.38, 0.68, 0.96);
-  skyMat.backFaceCulling = false;
-  skyMat.disableLighting = true;
-  sky.material = skyMat;
-  sky.position.y = 0;
-
   // ── Ocean ─────────────────────────────────────────────────────────────────
-  // Multi-layer ocean: base plane + ripple overlay
   const ocean = BABYLON.MeshBuilder.CreateGround("ocean",
-    { width: 280, height: 280, subdivisions: 40, updatable: true }, scene);
+    { width: 280, height: 280, subdivisions: 4 }, scene);
   const oceanMat = new BABYLON.StandardMaterial("oceanMat", scene);
   oceanMat.diffuseColor  = new BABYLON.Color3(0.08, 0.42, 0.72);
   oceanMat.specularColor = new BABYLON.Color3(0.8, 0.9, 1.0);
   oceanMat.specularPower = 64;
   ocean.material = oceanMat;
 
-  // Animated ocean color + gentle vertex displacement via time-based sine
+  // Animated ocean color (no vertex displacement — safe on all platforms)
   let waveT = 0;
-  const oceanVerts = ocean.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-  const origOceanVerts = oceanVerts ? Float32Array.from(oceanVerts) : null;
-
   scene.registerBeforeRender(() => {
     waveT += 0.016;
-    // Animate ocean color
     oceanMat.diffuseColor = new BABYLON.Color3(
       0.06 + 0.03 * Math.sin(waveT * 0.7),
       0.40 + 0.05 * Math.sin(waveT * 0.5 + 1),
       0.70 + 0.06 * Math.sin(waveT * 0.4 + 2)
     );
-    // Vertex wave animation
-    if (origOceanVerts) {
-      const verts = Float32Array.from(origOceanVerts);
-      for (let i = 0; i < verts.length; i += 3) {
-        const ox = verts[i], oz = verts[i + 2];
-        verts[i + 1] = 0.15 * Math.sin(ox * 0.18 + waveT * 1.2)
-                     + 0.10 * Math.sin(oz * 0.22 + waveT * 0.9);
-      }
-      ocean.updateVerticesData(BABYLON.VertexBuffer.PositionKind, verts);
-    }
   });
 
   // ── Foam ring around each island ─────────────────────────────────────────
@@ -121,34 +95,38 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
   const langDoor = new BABYLON.Vector3( 30, 0.5, 4.5);
 
   scene.registerBeforeRender(() => {
-    player.update();
-    cloudT += 0.003;
+    try {
+      player.update();
+      cloudT += 0.003;
 
-    // Drift clouds slowly
-    clouds.forEach((c, i) => {
-      c.position.x += Math.sin(cloudT + i) * 0.005;
-    });
+      // Drift clouds slowly
+      clouds.forEach((c, i) => {
+        c.position.x += Math.sin(cloudT + i) * 0.005;
+      });
 
-    const px = player.mesh.position;
+      const px = player.mesh.position;
 
-    const distMath = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-30, px.y, 0));
-    const distLang = BABYLON.Vector3.Distance(px, new BABYLON.Vector3( 30, px.y, 0));
+      const distMath = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-30, px.y, 0));
+      const distLang = BABYLON.Vector3.Distance(px, new BABYLON.Vector3( 30, px.y, 0));
 
-    if (distMath < 15) {
-      if (lastNearIsland !== "math") { lastNearIsland = "math"; hudLocation.textContent = "🔢 Math Island"; }
-    } else if (distLang < 15) {
-      if (lastNearIsland !== "lang") { lastNearIsland = "lang"; hudLocation.textContent = "🔤 Language Island"; }
-    } else {
-      if (lastNearIsland !== null) { lastNearIsland = null; hudLocation.textContent = "🌊 Open Ocean"; }
+      if (distMath < 15) {
+        if (lastNearIsland !== "math") { lastNearIsland = "math"; hudLocation.textContent = "🔢 Math Island"; }
+      } else if (distLang < 15) {
+        if (lastNearIsland !== "lang") { lastNearIsland = "lang"; hudLocation.textContent = "🔤 Language Island"; }
+      } else {
+        if (lastNearIsland !== null) { lastNearIsland = null; hudLocation.textContent = "🌊 Open Ocean"; }
+      }
+
+      if (!switching && BABYLON.Vector3.Distance(px, mathDoor) < 5) {
+        switching = true; setTimeout(() => onEnterMath(), 0);
+      } else if (!switching && BABYLON.Vector3.Distance(px, langDoor) < 5) {
+        switching = true; setTimeout(() => onEnterLang(), 0);
+      }
+
+      updateHUD();
+    } catch (e) {
+      console.error("WorldScene render error:", e);
     }
-
-    if (!switching && BABYLON.Vector3.Distance(px, mathDoor) < 5) {
-      switching = true; setTimeout(() => onEnterMath(), 0);
-    } else if (!switching && BABYLON.Vector3.Distance(px, langDoor) < 5) {
-      switching = true; setTimeout(() => onEnterLang(), 0);
-    }
-
-    updateHUD();
   });
 
   return scene;
