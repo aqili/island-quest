@@ -142,7 +142,7 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   floor.material = floorMat;
 
   // Stone tile grid overlay (dynamic texture on floor)
-  _applyTileTexture(floorMat, wallColor, 8, 18);
+  _applyTileTexture(scene, floorMat, wallColor, 8, 18);
 
   // Carpet runner down the center
   const carpetMat = new BABYLON.StandardMaterial("carpet_" + idx, scene);
@@ -468,9 +468,9 @@ function _buildThroneChair(scene, x, z) {
 
 // ── Tile texture helper ───────────────────────────────────────────────────────
 
-function _applyTileTexture(mat, baseColor, uTiles, vTiles) {
+function _applyTileTexture(scene, mat, baseColor, uTiles, vTiles) {
   const size = 512;
-  const dt = new BABYLON.DynamicTexture("tileTex_" + Math.random(), { width: size, height: size }, null);
+  const dt = new BABYLON.DynamicTexture("tileTex_" + Math.random(), { width: size, height: size }, scene);
   const ctx = dt.getContext();
   const tw  = size / uTiles;
   const th  = size / vTiles;

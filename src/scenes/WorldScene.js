@@ -45,7 +45,7 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
   // ── Ocean ─────────────────────────────────────────────────────────────────
   // Multi-layer ocean: base plane + ripple overlay
   const ocean = BABYLON.MeshBuilder.CreateGround("ocean",
-    { width: 280, height: 280, subdivisions: 40 }, scene);
+    { width: 280, height: 280, subdivisions: 40, updatable: true }, scene);
   const oceanMat = new BABYLON.StandardMaterial("oceanMat", scene);
   oceanMat.diffuseColor  = new BABYLON.Color3(0.08, 0.42, 0.72);
   oceanMat.specularColor = new BABYLON.Color3(0.8, 0.9, 1.0);

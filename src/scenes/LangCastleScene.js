@@ -134,7 +134,7 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
     { width: 8, height: 0.22, depth: ROOM_LENGTH }, scene);
   floor.position = new BABYLON.Vector3(0, 0, baseZ + ROOM_LENGTH / 2);
   floor.material = floorMat;
-  _applyTileTexture(floorMat, wallColor, 8, 18, true);
+  _applyTileTexture(scene, floorMat, wallColor, 8, 18, true);
 
   // Carpet runner
   const carpetMat = new BABYLON.StandardMaterial("lCarpet_" + idx, scene);
@@ -432,9 +432,9 @@ function _buildThroneChair(scene, x, z, accentColor) {
 
 // ── Tile texture helper ───────────────────────────────────────────────────────
 
-function _applyTileTexture(mat, baseColor, uTiles, vTiles, dark) {
+function _applyTileTexture(scene, mat, baseColor, uTiles, vTiles, dark) {
   const size = 512;
-  const dt = new BABYLON.DynamicTexture("lTileTex_" + Math.random(), { width: size, height: size }, null);
+  const dt = new BABYLON.DynamicTexture("lTileTex_" + Math.random(), { width: size, height: size }, scene);
   const ctx = dt.getContext();
   const tw  = size / uTiles;
   const th  = size / vTiles;
