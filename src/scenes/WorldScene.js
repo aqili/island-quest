@@ -2,8 +2,8 @@
  * WorldScene.js
  * The overworld: an ocean with two islands the player can walk to.
  *
- * Math Island  → position (-30, 0, 0)  green/yellow theme
- * Language Island → position ( 30, 0, 0)  blue/purple theme
+ * Math Island  → position (-60, 0, 0)  green/yellow theme
+ * Language Island → position ( 60, 0, 0)  blue/purple theme
  *
  * When the player steps into a castle door trigger zone the scene manager
  * switches to the corresponding castle scene.
@@ -37,12 +37,12 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
   sun.intensity = 1.1;
 
   // ── Ocean floor plane ─────────────────────────────────────────────────────
-  const ocean = BABYLON.MeshBuilder.CreateGround("ocean", { width: 200, height: 200 }, scene);
+  const ocean = BABYLON.MeshBuilder.CreateGround("ocean", { width: 400, height: 400 }, scene);
   const oceanMat = new BABYLON.StandardMaterial("oceanMat", scene);
   oceanMat.diffuseColor  = new BABYLON.Color3(0.1, 0.55, 0.9);
   oceanMat.specularColor = new BABYLON.Color3(0.2, 0.5, 0.8);
   ocean.material = oceanMat;
-  // Gentle wave animation via material alpha scroll (cosmetic)
+  // Gentle wave animation via material colour scroll (cosmetic)
   let waveT = 0;
   scene.registerBeforeRender(() => {
     waveT += 0.012;
@@ -75,12 +75,36 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
   }
   updateHUD();
 
-  // ── Proximity / trigger checks ────────────────────────────────────────────
-  const ISLAND_ENTER_DIST = 5;   // distance from castle door to trigger
+  // ── Proximity hint element ────────────────────────────────────────────────
+  let _hintEl = null;
+  function _showHint(text) {
+    if (_hintEl) return;
+    _hintEl = document.createElement("div");
+    _hintEl.style.cssText = [
+      "position:fixed", "bottom:200px", "left:50%",
+      "transform:translateX(-50%)",
+      "background:rgba(0,0,0,0.65)", "color:#ffe066",
+      "font-family:'Fredoka One',cursive", "font-size:1.3rem",
+      "padding:10px 28px", "border-radius:14px",
+      "z-index:120", "pointer-events:none",
+      "animation:bannerFade 2.5s forwards"
+    ].join(";");
+    _hintEl.textContent = text;
+    document.body.appendChild(_hintEl);
+    setTimeout(() => { if (_hintEl) { _hintEl.remove(); _hintEl = null; } }, 2500);
+  }
+  function _hideHint() {
+    if (_hintEl) { _hintEl.remove(); _hintEl = null; }
+  }
 
-  // Door positions (world coordinates)
-  const mathDoor = new BABYLON.Vector3(-30, 0.5, 4.5);
-  const langDoor = new BABYLON.Vector3( 30, 0.5, 4.5);
+  let _lastHintIsland = null;
+
+  // ── Proximity / trigger checks ────────────────────────────────────────────
+  const ISLAND_ENTER_DIST = 9; // distance from castle door to trigger
+
+  // Door positions (world coordinates) — front face of castle body
+  const mathDoor = new BABYLON.Vector3(-60, 0.5, 9);
+  const langDoor = new BABYLON.Vector3( 60, 0.5, 9);
 
   scene.registerBeforeRender(() => {
     player.update();
@@ -88,18 +112,35 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
     const px = player.mesh.position;
 
     // Proximity labels
-    const distMath = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-30, px.y, 0));
-    const distLang = BABYLON.Vector3.Distance(px, new BABYLON.Vector3( 30, px.y, 0));
+    const distMath = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-60, px.y, 0));
+    const distLang = BABYLON.Vector3.Distance(px, new BABYLON.Vector3( 60, px.y, 0));
 
-    if (distMath < 15) {
+    if (distMath < 30) {
       if (lastNearIsland !== "math") {
         lastNearIsland = "math";
         hudLocation.textContent = "🔢 Math Island";
       }
-    } else if (distLang < 15) {
+      // Proximity castle hint
+      const distToDoor = BABYLON.Vector3.Distance(px, mathDoor);
+      if (distToDoor < 20 && _lastHintIsland !== "math") {
+        _lastHintIsland = "math";
+        _showHint("🏰 Walk to the castle door!");
+      } else if (distToDoor >= 20 && _lastHintIsland === "math") {
+        _lastHintIsland = null;
+        _hideHint();
+      }
+    } else if (distLang < 30) {
       if (lastNearIsland !== "lang") {
         lastNearIsland = "lang";
         hudLocation.textContent = "🔤 Language Island";
+      }
+      const distToDoor = BABYLON.Vector3.Distance(px, langDoor);
+      if (distToDoor < 20 && _lastHintIsland !== "lang") {
+        _lastHintIsland = "lang";
+        _showHint("🏰 Walk to the castle door!");
+      } else if (distToDoor >= 20 && _lastHintIsland === "lang") {
+        _lastHintIsland = null;
+        _hideHint();
       }
     } else {
       if (lastNearIsland !== null) {
@@ -126,10 +167,10 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
 // ─── Private: build Math Island ──────────────────────────────────────────────
 
 function _buildMathIsland(scene) {
-  const OX = -30, OZ = 0;
+  const OX = -60, OZ = 0;
 
   // Ground
-  const ground = BABYLON.MeshBuilder.CreateDisc("mathGround", { radius: 12, tessellation: 32 }, scene);
+  const ground = BABYLON.MeshBuilder.CreateDisc("mathGround", { radius: 24, tessellation: 32 }, scene);
   ground.rotation.x = Math.PI / 2;
   ground.position   = new BABYLON.Vector3(OX, 0.02, OZ);
   const gm = new BABYLON.StandardMaterial("mathGroundMat", scene);
@@ -139,12 +180,13 @@ function _buildMathIsland(scene) {
   // Castle body
   _buildCastle(scene, OX, OZ, new BABYLON.Color3(0.85, 0.78, 0.55), new BABYLON.Color3(0.6, 0.5, 0.3));
 
-  // Sign
-  _buildSign(scene, OX, OZ + 7, "Math Island 🔢", new BABYLON.Color3(0.95, 0.85, 0.2));
+  // Sign (animated bob)
+  _buildSign(scene, OX, OZ + 14, "Math Island 🔢", new BABYLON.Color3(0.95, 0.85, 0.2));
 
-  // Trees
+  // 8 trees spread wider
   const treePositions = [
-    [-4, -5], [4, -5], [-6, 2], [6, 2], [0, -8]
+    [-8, -10], [8, -10], [-14, -4], [14, -4],
+    [-10, 6],  [10, 6],  [-5, -18], [5, -18]
   ];
   treePositions.forEach(([tx, tz]) => {
     _buildTree(scene, OX + tx, OZ + tz, new BABYLON.Color3(0.1, 0.7, 0.1));
@@ -154,10 +196,10 @@ function _buildMathIsland(scene) {
 // ─── Private: build Language Island ──────────────────────────────────────────
 
 function _buildLangIsland(scene) {
-  const OX = 30, OZ = 0;
+  const OX = 60, OZ = 0;
 
   // Ground
-  const ground = BABYLON.MeshBuilder.CreateDisc("langGround", { radius: 12, tessellation: 32 }, scene);
+  const ground = BABYLON.MeshBuilder.CreateDisc("langGround", { radius: 24, tessellation: 32 }, scene);
   ground.rotation.x = Math.PI / 2;
   ground.position   = new BABYLON.Vector3(OX, 0.02, OZ);
   const gm = new BABYLON.StandardMaterial("langGroundMat", scene);
@@ -167,12 +209,13 @@ function _buildLangIsland(scene) {
   // Castle
   _buildCastle(scene, OX, OZ, new BABYLON.Color3(0.55, 0.65, 0.85), new BABYLON.Color3(0.3, 0.4, 0.6));
 
-  // Sign
-  _buildSign(scene, OX, OZ + 7, "Language Island 🔤", new BABYLON.Color3(0.5, 0.85, 1.0));
+  // Sign (animated bob)
+  _buildSign(scene, OX, OZ + 14, "Language Island 🔤", new BABYLON.Color3(0.5, 0.85, 1.0));
 
-  // Trees (purple tinted)
+  // 8 trees spread wider (purple tinted)
   const treePositions = [
-    [-4, -5], [4, -5], [-6, 2], [6, 2], [0, -8]
+    [-8, -10], [8, -10], [-14, -4], [14, -4],
+    [-10, 6],  [10, 6],  [-5, -18], [5, -18]
   ];
   treePositions.forEach(([tx, tz]) => {
     _buildTree(scene, OX + tx, OZ + tz, new BABYLON.Color3(0.5, 0.1, 0.8));
@@ -189,21 +232,22 @@ function _buildCastle(scene, cx, cz, wallColor, towerColor) {
   towerMat.diffuseColor = towerColor;
 
   // Main body
-  const body = BABYLON.MeshBuilder.CreateBox("castleBody_" + cx, { width: 6, height: 4, depth: 5 }, scene);
-  body.position = new BABYLON.Vector3(cx, 2, cz);
+  const body = BABYLON.MeshBuilder.CreateBox("castleBody_" + cx,
+    { width: 14, height: 8, depth: 10 }, scene);
+  body.position = new BABYLON.Vector3(cx, 4, cz);
   body.material = mat;
 
   // Four corner towers
-  [[-3, -2.5], [3, -2.5], [-3, 2.5], [3, 2.5]].forEach(([tx, tz], i) => {
+  [[-7, -5], [7, -5], [-7, 5], [7, 5]].forEach(([tx, tz], i) => {
     const tower = BABYLON.MeshBuilder.CreateCylinder("tower_" + cx + i,
-      { diameter: 1.4, height: 5.5, tessellation: 8 }, scene);
-    tower.position = new BABYLON.Vector3(cx + tx, 2.75, cz + tz);
+      { diameter: 3.0, height: 11, tessellation: 8 }, scene);
+    tower.position = new BABYLON.Vector3(cx + tx, 5.5, cz + tz);
     tower.material = towerMat;
 
     // Conical roof
     const roof = BABYLON.MeshBuilder.CreateCylinder("roof_" + cx + i,
-      { diameterTop: 0, diameterBottom: 1.6, height: 1.2, tessellation: 8 }, scene);
-    roof.position = new BABYLON.Vector3(cx + tx, 5.85, cz + tz);
+      { diameterTop: 0, diameterBottom: 3.4, height: 2.5, tessellation: 8 }, scene);
+    roof.position = new BABYLON.Vector3(cx + tx, 12.25, cz + tz);
     const roofMat = new BABYLON.StandardMaterial("roofMat_" + cx + i, scene);
     roofMat.diffuseColor = new BABYLON.Color3(0.7, 0.15, 0.15);
     roof.material = roofMat;
@@ -211,8 +255,8 @@ function _buildCastle(scene, cx, cz, wallColor, towerColor) {
 
   // Door gap (dark box inset in front)
   const door = BABYLON.MeshBuilder.CreateBox("door_" + cx,
-    { width: 1.4, height: 2.2, depth: 0.3 }, scene);
-  door.position = new BABYLON.Vector3(cx, 1.1, cz + 2.6);
+    { width: 3.5, height: 5.5, depth: 0.5 }, scene);
+  door.position = new BABYLON.Vector3(cx, 2.75, cz + 5.1);
   const doorMat = new BABYLON.StandardMaterial("doorMat_" + cx, scene);
   doorMat.diffuseColor = new BABYLON.Color3(0.15, 0.08, 0.02);
   door.material = doorMat;
@@ -226,27 +270,29 @@ function _buildTree(scene, x, z, leafColor) {
   leafMat.diffuseColor = leafColor;
 
   const trunk = BABYLON.MeshBuilder.CreateCylinder("trunk_" + x + z,
-    { diameter: 0.35, height: 1.6, tessellation: 8 }, scene);
-  trunk.position = new BABYLON.Vector3(x, 0.8, z);
+    { diameter: 0.7, height: 3.0, tessellation: 8 }, scene);
+  trunk.position = new BABYLON.Vector3(x, 1.5, z);
   trunk.material = trunkMat;
 
   const leaves = BABYLON.MeshBuilder.CreateCylinder("leaves_" + x + z,
-    { diameterTop: 0, diameterBottom: 2.2, height: 3, tessellation: 8 }, scene);
-  leaves.position = new BABYLON.Vector3(x, 3, z);
+    { diameterTop: 0, diameterBottom: 4.5, height: 6, tessellation: 8 }, scene);
+  leaves.position = new BABYLON.Vector3(x, 6, z);
   leaves.material = leafMat;
 }
 
 function _buildSign(scene, x, z, text, color) {
   // Post
-  const post = BABYLON.MeshBuilder.CreateBox("signPost_" + x, { width: 0.15, height: 2, depth: 0.15 }, scene);
-  post.position = new BABYLON.Vector3(x, 1, z);
+  const post = BABYLON.MeshBuilder.CreateBox("signPost_" + x,
+    { width: 0.3, height: 4, depth: 0.3 }, scene);
+  post.position = new BABYLON.Vector3(x, 2, z);
   const postMat = new BABYLON.StandardMaterial("postMat_" + x, scene);
   postMat.diffuseColor = new BABYLON.Color3(0.45, 0.28, 0.1);
   post.material = postMat;
 
   // Board
-  const board = BABYLON.MeshBuilder.CreateBox("signBoard_" + x, { width: 2.8, height: 0.8, depth: 0.12 }, scene);
-  board.position = new BABYLON.Vector3(x, 2.1, z);
+  const board = BABYLON.MeshBuilder.CreateBox("signBoard_" + x,
+    { width: 5.5, height: 1.5, depth: 0.2 }, scene);
+  board.position = new BABYLON.Vector3(x, 4.5, z);
   const boardMat = new BABYLON.StandardMaterial("boardMat_" + x, scene);
   boardMat.diffuseColor = color;
   board.material = boardMat;
@@ -255,4 +301,11 @@ function _buildSign(scene, x, z, text, color) {
   const dt = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 128 }, scene);
   dt.drawText(text, null, 90, "bold 52px Fredoka One", "#2c3e50", "transparent", true);
   boardMat.diffuseTexture = dt;
+
+  // Animated floating bob
+  let t = 0;
+  scene.registerBeforeRender(() => {
+    t += 0.02;
+    board.position.y = 4.5 + Math.sin(t) * 0.2;
+  });
 }

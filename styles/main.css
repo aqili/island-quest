@@ -338,49 +338,46 @@ body {
   100% { opacity: 0; }
 }
 
-/* ===== Virtual Joystick (mobile touch control) ===== */
-#joystick-base {
+/* ===== Virtual D-pad joystick ===== */
+#virtual-joystick {
   position: fixed;
   bottom: 24px;
   left: 24px;
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  border: 2px solid rgba(255, 255, 255, 0.4);
   z-index: 150;
-  touch-action: none;
+  display: grid;
+  grid-template-areas: ". up ." "left . right" ". down .";
+  grid-template-columns: 64px 64px 64px;
+  grid-template-rows: 64px 64px 64px;
+  gap: 4px;
+  pointer-events: all;
+  user-select: none;
+}
+
+#virtual-joystick.joystick-hidden { display: none; }
+
+.joy-btn {
+  width: 64px;
+  height: 64px;
+  background: rgba(0,0,0,0.45);
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  user-select: none;
-}
-
-#joystick-knob {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.55);
+  font-size: 1.8rem;
+  color: #fff;
+  cursor: pointer;
   touch-action: none;
-  pointer-events: none;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transition: transform 0.05s;
+  transition: background 0.1s;
 }
 
-#joystick-label {
-  position: fixed;
-  bottom: 140px;
-  left: 24px;
-  width: 110px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
-  z-index: 150;
-  pointer-events: none;
-  user-select: none;
-}
+.joy-btn:active,
+.joy-btn.pressed { background: rgba(255,200,0,0.55); border-color: #ffe066; }
+
+[data-dir="up"]    { grid-area: up; }
+[data-dir="left"]  { grid-area: left; }
+[data-dir="right"] { grid-area: right; }
+[data-dir="down"]  { grid-area: down; }
 
 /* ===== Loading screen ===== */
 #loading-screen {
@@ -433,3 +430,15 @@ body {
 
 #hud-exit-btn:hover { background: #c0392b; transform: translateY(-2px); }
 #hud-exit-btn:active { transform: translateY(1px); }
+
+/* ===== Scrollable puzzle panel on small screens ===== */
+.puzzle-panel {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ===== Touch-friendly larger puzzle buttons on mobile ===== */
+@media (max-width: 600px) {
+  .btn { min-height: 72px; font-size: 1.4rem; }
+  .puzzle-panel { padding: 24px 16px; }
+}

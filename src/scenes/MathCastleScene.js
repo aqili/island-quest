@@ -26,7 +26,7 @@ const ROOMS = [
   { name: "👑 Throne Room",                        pool: "throne",type: "throne", color: new BABYLON.Color3(0.9,  0.82, 0.45) }
 ];
 
-const ROOM_LENGTH = 18; // Z-offset between rooms
+const ROOM_LENGTH = 36; // Z-offset between rooms
 
 /**
  * @param {BABYLON.Engine} engine
@@ -93,10 +93,11 @@ export function createMathCastleScene(engine, onExit) {
     if (roomIdx !== currentRoom) {
       currentRoom = roomIdx;
       _updateHUD(hudLocation, hudStars, roomIdx);
+      _showRoomBanner(ROOMS[roomIdx].name);
     }
 
     // Exit trigger at back wall of Room 0
-    if (pz < -2 && roomIdx === 0) {
+    if (pz < -4 && roomIdx === 0) {
       doExit();
       return;
     }
@@ -108,7 +109,7 @@ export function createMathCastleScene(engine, onExit) {
       const dist  = Math.abs(pz - doorZ);
       const distX = Math.abs(px);
 
-      if (dist < 1.2 && distX < 1.5) {
+      if (dist < 2.5 && distX < 3) {
         // Check if room already solved
         if (SaveManager.isRoomUnlocked("mathIsland", i + 1)) {
           // Door already open — let player pass, mark door green
@@ -117,7 +118,7 @@ export function createMathCastleScene(engine, onExit) {
         }
         // Block and show puzzle
         puzzleActive = true;
-        player.mesh.position.z = doorZ - 1.5; // push back
+        player.mesh.position.z = doorZ - 3; // push back
         _triggerPuzzle(i, scene, () => {
           SaveManager.markRoomComplete("mathIsland", i);
           doorInfo.mesh.material.diffuseColor = new BABYLON.Color3(0.1, 0.8, 0.2);
@@ -127,6 +128,7 @@ export function createMathCastleScene(engine, onExit) {
           // Throne room victory
           if (i === 3) {
             SaveManager.earnCrown("mathIsland");
+            _spawnCrownParticles(scene);
             _showVictory(scene, "Math Crown", onExit);
           }
         });
@@ -147,7 +149,7 @@ function _buildRoom(scene, idx, floorColor, doors) {
 
   // Floor
   const floor = BABYLON.MeshBuilder.CreateBox("floor_" + idx,
-    { width: 8, height: 0.2, depth: ROOM_LENGTH }, scene);
+    { width: 16, height: 0.2, depth: ROOM_LENGTH }, scene);
   floor.position = new BABYLON.Vector3(0, 0, baseZ + ROOM_LENGTH / 2);
   floor.material = mat;
 
@@ -158,28 +160,33 @@ function _buildRoom(scene, idx, floorColor, doors) {
   );
 
   // Left wall
-  const lWall = BABYLON.MeshBuilder.CreateBox("lWall_" + idx, { width: 0.3, height: 4, depth: ROOM_LENGTH }, scene);
-  lWall.position = new BABYLON.Vector3(-4.15, 2, baseZ + ROOM_LENGTH / 2);
+  const lWall = BABYLON.MeshBuilder.CreateBox("lWall_" + idx,
+    { width: 0.3, height: 8, depth: ROOM_LENGTH }, scene);
+  lWall.position = new BABYLON.Vector3(-8.15, 4, baseZ + ROOM_LENGTH / 2);
   lWall.material = wallMat;
 
   // Right wall
-  const rWall = BABYLON.MeshBuilder.CreateBox("rWall_" + idx, { width: 0.3, height: 4, depth: ROOM_LENGTH }, scene);
-  rWall.position = new BABYLON.Vector3(4.15, 2, baseZ + ROOM_LENGTH / 2);
+  const rWall = BABYLON.MeshBuilder.CreateBox("rWall_" + idx,
+    { width: 0.3, height: 8, depth: ROOM_LENGTH }, scene);
+  rWall.position = new BABYLON.Vector3(8.15, 4, baseZ + ROOM_LENGTH / 2);
   rWall.material = wallMat;
 
   // Ceiling
-  const ceil = BABYLON.MeshBuilder.CreateBox("ceil_" + idx, { width: 8, height: 0.2, depth: ROOM_LENGTH }, scene);
-  ceil.position = new BABYLON.Vector3(0, 4, baseZ + ROOM_LENGTH / 2);
+  const ceil = BABYLON.MeshBuilder.CreateBox("ceil_" + idx,
+    { width: 16, height: 0.2, depth: ROOM_LENGTH }, scene);
+  ceil.position = new BABYLON.Vector3(0, 8, baseZ + ROOM_LENGTH / 2);
   ceil.material = wallMat;
 
   // Back wall (entry side)
   if (idx === 0) {
-    const backWall = BABYLON.MeshBuilder.CreateBox("backWall", { width: 8, height: 4, depth: 0.3 }, scene);
-    backWall.position = new BABYLON.Vector3(0, 2, baseZ);
+    const backWall = BABYLON.MeshBuilder.CreateBox("backWall",
+      { width: 16, height: 8, depth: 0.3 }, scene);
+    backWall.position = new BABYLON.Vector3(0, 4, baseZ);
     backWall.material = wallMat;
     // Door gap in back wall
-    const exitDoor = BABYLON.MeshBuilder.CreateBox("exitDoor", { width: 2, height: 2.5, depth: 0.35 }, scene);
-    exitDoor.position = new BABYLON.Vector3(0, 1.25, baseZ);
+    const exitDoor = BABYLON.MeshBuilder.CreateBox("exitDoor",
+      { width: 4, height: 5, depth: 0.5 }, scene);
+    exitDoor.position = new BABYLON.Vector3(0, 2.5, baseZ);
     const edMat = new BABYLON.StandardMaterial("exitDoorMat", scene);
     edMat.diffuseColor = new BABYLON.Color3(0.15, 0.1, 0.05);
     exitDoor.material = edMat;
@@ -187,24 +194,28 @@ function _buildRoom(scene, idx, floorColor, doors) {
 
   // Door to NEXT room (at far end of this room)
   const doorZ = baseZ + ROOM_LENGTH;
-  const frontWall = BABYLON.MeshBuilder.CreateBox("frontWall_" + idx, { width: 8, height: 4, depth: 0.3 }, scene);
-  frontWall.position = new BABYLON.Vector3(0, 2, doorZ);
+  const frontWall = BABYLON.MeshBuilder.CreateBox("frontWall_" + idx,
+    { width: 16, height: 8, depth: 0.3 }, scene);
+  frontWall.position = new BABYLON.Vector3(0, 4, doorZ);
   frontWall.material = wallMat;
 
   // Door frame (left + right sections, gap in middle)
-  [[-2.5, 3], [2.5, 3]].forEach(([dx, dw], j) => {
-    const seg = BABYLON.MeshBuilder.CreateBox("doorSeg_" + idx + j, { width: dw, height: 4, depth: 0.3 }, scene);
-    seg.position = new BABYLON.Vector3(dx, 2, doorZ);
+  [[-5, 6], [5, 6]].forEach(([dx, dw], j) => {
+    const seg = BABYLON.MeshBuilder.CreateBox("doorSeg_" + idx + j,
+      { width: dw, height: 8, depth: 0.3 }, scene);
+    seg.position = new BABYLON.Vector3(dx, 4, doorZ);
     seg.material = wallMat;
   });
   // Door top filler
-  const topFill = BABYLON.MeshBuilder.CreateBox("doorTop_" + idx, { width: 2, height: 1.25, depth: 0.3 }, scene);
-  topFill.position = new BABYLON.Vector3(0, 3.375, doorZ);
+  const topFill = BABYLON.MeshBuilder.CreateBox("doorTop_" + idx,
+    { width: 4, height: 2.5, depth: 0.3 }, scene);
+  topFill.position = new BABYLON.Vector3(0, 6.75, doorZ);
   topFill.material = wallMat;
 
   // Colored door slab (starts red, turns green on solve)
-  const doorSlab = BABYLON.MeshBuilder.CreateBox("doorSlab_" + idx, { width: 2, height: 2.75, depth: 0.2 }, scene);
-  doorSlab.position = new BABYLON.Vector3(0, 1.375, doorZ);
+  const doorSlab = BABYLON.MeshBuilder.CreateBox("doorSlab_" + idx,
+    { width: 4, height: 5.5, depth: 0.3 }, scene);
+  doorSlab.position = new BABYLON.Vector3(0, 2.75, doorZ);
   const doorSlabMat = new BABYLON.StandardMaterial("doorSlabMat_" + idx, scene);
 
   // Check if already solved
@@ -215,11 +226,14 @@ function _buildRoom(scene, idx, floorColor, doors) {
     : new BABYLON.Color3(0.85, 0.1, 0.1);
   doorSlab.material = doorSlabMat;
 
-  // Torches (point lights)
-  const torch = new BABYLON.PointLight("torch_" + idx, new BABYLON.Vector3(0, 3.2, baseZ + ROOM_LENGTH / 2), scene);
-  torch.diffuse   = new BABYLON.Color3(1, 0.75, 0.3);
-  torch.intensity = 1.2;
-  torch.range     = 18;
+  // Two torches (one each side wall) per room
+  [-6, 6].forEach((tx, ti) => {
+    const torch = new BABYLON.PointLight("torch_" + idx + "_" + ti,
+      new BABYLON.Vector3(tx, 6, baseZ + ROOM_LENGTH / 2), scene);
+    torch.diffuse   = new BABYLON.Color3(1, 0.75, 0.3);
+    torch.intensity = 1.5;
+    torch.range     = 40;
+  });
 
   doors.push({ mesh: doorSlab, z: doorZ });
 }
@@ -247,7 +261,6 @@ function _runThronePuzzle(onSuccess) {
   function nextQ() {
     const pool = mathPuzzles.throne;
     const q = pool[Math.floor(Math.random() * pool.length)];
-    // Wrap showPuzzle so we count streak
     showPuzzle(
       { ...q, question: `[${streak + 1}/${needed}] ${q.question}` },
       "choice",
@@ -262,6 +275,39 @@ function _runThronePuzzle(onSuccess) {
     );
   }
   nextQ();
+}
+
+// ─── Room entry banner ────────────────────────────────────────────────────────
+
+function _showRoomBanner(text) {
+  const el = document.createElement("div");
+  el.className = "room-banner";
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// ─── Crown sparkle particles ──────────────────────────────────────────────────
+
+function _spawnCrownParticles(scene) {
+  const ps = new BABYLON.ParticleSystem("crownParticles", 200, scene);
+  ps.particleTexture = new BABYLON.Texture(
+    "https://assets.babylonjs.com/textures/flare.png", scene);
+  ps.emitter = new BABYLON.Vector3(0, 3, 5);
+  ps.color1 = new BABYLON.Color4(1, 0.9, 0.1, 1);
+  ps.color2 = new BABYLON.Color4(1, 0.5, 0, 1);
+  ps.minSize = 0.2;
+  ps.maxSize = 0.6;
+  ps.minLifeTime = 1.0;
+  ps.maxLifeTime = 2.5;
+  ps.emitRate = 200;
+  ps.minEmitPower = 3;
+  ps.maxEmitPower = 8;
+  ps.direction1 = new BABYLON.Vector3(-3, 6, -3);
+  ps.direction2 = new BABYLON.Vector3(3, 10, 3);
+  ps.gravity = new BABYLON.Vector3(0, -4, 0);
+  ps.targetStopDuration = 1.5;
+  ps.start();
 }
 
 // ─── HUD helpers ─────────────────────────────────────────────────────────────
