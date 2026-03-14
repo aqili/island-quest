@@ -43,6 +43,11 @@ export function createLangCastleScene(engine, onExit) {
   const ambient = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
   ambient.intensity = 0.9;
 
+  // Fog — focus view on current room
+  scene.fogMode    = BABYLON.Scene.FOGMODE_EXP2;
+  scene.fogColor   = new BABYLON.Color3(0.07, 0.04, 0.12);
+  scene.fogDensity = 0.018;
+
   const doors = [];
   ROOMS.forEach((room, i) => {
     _buildRoom(scene, i, room.color, doors);
@@ -50,6 +55,16 @@ export function createLangCastleScene(engine, onExit) {
 
   const player = createPlayer(scene);
   player.mesh.position = new BABYLON.Vector3(0, 0.5, 2);
+
+  // Top-down castle camera — player can see full room without walls blocking
+  const cam = player.camera;
+  cam.alpha            = -Math.PI / 2;
+  cam.beta             = Math.PI / 3;
+  cam.radius           = 22;
+  cam.lowerBetaLimit   = 0.4;
+  cam.upperBetaLimit   = Math.PI / 2.3;
+  cam.lowerRadiusLimit = 12;
+  cam.upperRadiusLimit = 30;
 
   const hudLocation = document.getElementById("hud-location");
   const hudStars    = document.getElementById("hud-stars");
@@ -59,6 +74,13 @@ export function createLangCastleScene(engine, onExit) {
   const hudExit    = document.getElementById("hud-exit");
   const hudExitBtn = document.getElementById("hud-exit-btn");
   hudExit.style.display = "";
+
+  // Navigation hint
+  const navHint = document.createElement("div");
+  navHint.id        = "castle-nav-hint";
+  navHint.textContent = "🔵 Walk to the glowing orb at the door to solve a puzzle and unlock the next room!";
+  document.body.appendChild(navHint);
+  scene.onDisposeObservable.addOnce(() => navHint.remove());
 
   function doExit() {
     hudExit.style.display = "none";
@@ -89,6 +111,20 @@ export function createLangCastleScene(engine, onExit) {
       _updateHUD(hudLocation, hudStars, roomIdx);
       _showRoomBanner(ROOMS[roomIdx].name);
     }
+
+    // Animate door beacons (pulse + float)
+    const now = Date.now();
+    doors.forEach((doorInfo, i) => {
+      if (!doorInfo.beacon) return;
+      const solved = SaveManager.isRoomUnlocked("languageIsland", i + 1);
+      doorInfo.beacon.isVisible = !solved;
+      if (!solved) {
+        doorInfo.beacon.position.y = 5.5 + Math.sin(now * 0.002 + i) * 0.25;
+        const pulse = 0.5 + Math.sin(now * 0.003 + i) * 0.5;
+        const ec = doorInfo.beacon.material.emissiveColor;
+        ec.r = pulse * 0.5; ec.g = pulse * 0.2; ec.b = pulse;
+      }
+    });
 
     // Exit trigger
     if (pz < -4 && roomIdx === 0) {
@@ -129,6 +165,7 @@ export function createLangCastleScene(engine, onExit) {
 // ─── Room builder ─────────────────────────────────────────────────────────────
 
 function _buildRoom(scene, idx, floorColor, doors) {
+  const BABYLON = window.BABYLON;
   const baseZ = idx * ROOM_LENGTH;
 
   const mat = new BABYLON.StandardMaterial("lRoomFloor_" + idx, scene);
@@ -154,10 +191,7 @@ function _buildRoom(scene, idx, floorColor, doors) {
   rWall.position = new BABYLON.Vector3(8.15, 4, baseZ + ROOM_LENGTH / 2);
   rWall.material = wallMat;
 
-  const ceil = BABYLON.MeshBuilder.CreateBox("lCeil_" + idx,
-    { width: 16, height: 0.2, depth: ROOM_LENGTH }, scene);
-  ceil.position = new BABYLON.Vector3(0, 8, baseZ + ROOM_LENGTH / 2);
-  ceil.material = wallMat;
+  // NOTE: No ceiling — open top allows the top-down camera to see inside
 
   if (idx === 0) {
     const backWall = BABYLON.MeshBuilder.CreateBox("lBackWall",
@@ -210,7 +244,117 @@ function _buildRoom(scene, idx, floorColor, doors) {
     torch.range     = 40;
   });
 
-  doors.push({ mesh: doorSlab, z: doorZ });
+  // Navigation beacon — glowing pulsing sphere above the door
+  const beacon = BABYLON.MeshBuilder.CreateSphere("lBeacon_" + idx,
+    { diameter: 1.4, segments: 8 }, scene);
+  beacon.position = new BABYLON.Vector3(0, 5.5, doorZ - 0.5);
+  const beaconMat = new BABYLON.StandardMaterial("lBeaconMat_" + idx, scene);
+  beaconMat.diffuseColor  = new BABYLON.Color3(0.6, 0.3, 1.0);
+  beaconMat.emissiveColor = new BABYLON.Color3(0.5, 0.2, 1.0);
+  beacon.material = beaconMat;
+  beacon.isVisible = !solved;
+
+  // Furniture
+  _addFurniture(scene, idx, baseZ, floorColor);
+
+  doors.push({ mesh: doorSlab, z: doorZ, beacon });
+}
+
+// ─── Furniture builder ────────────────────────────────────────────────────────
+
+function _addFurniture(scene, idx, baseZ, floorColor) {
+  const BABYLON = window.BABYLON;
+  const midZ = baseZ + ROOM_LENGTH / 2;
+
+  // Rug
+  const rugMat = new BABYLON.StandardMaterial("lRug_" + idx, scene);
+  rugMat.diffuseColor = new BABYLON.Color3(
+    floorColor.r * 0.25,
+    floorColor.g * 0.3,
+    Math.min(floorColor.b * 0.6 + 0.25, 1)
+  );
+  const rug = BABYLON.MeshBuilder.CreateBox("lRug_" + idx,
+    { width: 11, height: 0.05, depth: 24 }, scene);
+  rug.position = new BABYLON.Vector3(0, 0.12, midZ);
+  rug.material = rugMat;
+
+  // Wood material
+  const woodMat = new BABYLON.StandardMaterial("lWood_" + idx, scene);
+  woodMat.diffuseColor = new BABYLON.Color3(0.45, 0.28, 0.1);
+
+  // Table near entrance
+  const tableZ = baseZ + ROOM_LENGTH * 0.3;
+  const tableTop = BABYLON.MeshBuilder.CreateBox("lTableTop_" + idx,
+    { width: 4.5, height: 0.2, depth: 2.2 }, scene);
+  tableTop.position = new BABYLON.Vector3(0, 1.6, tableZ);
+  tableTop.material = woodMat;
+  [[-1.9, -0.9], [-1.9, 0.9], [1.9, -0.9], [1.9, 0.9]].forEach(([tx, tz], i) => {
+    const leg = BABYLON.MeshBuilder.CreateCylinder("lLeg_" + idx + i,
+      { diameter: 0.18, height: 1.5, tessellation: 6 }, scene);
+    leg.position = new BABYLON.Vector3(tx, 0.85, tableZ + tz);
+    leg.material = woodMat;
+  });
+
+  // Chairs
+  [[-3.2, 0], [3.2, 0]].forEach(([cx], i) => {
+    const seat = BABYLON.MeshBuilder.CreateBox("lSeat_" + idx + i,
+      { width: 1.0, height: 0.12, depth: 1.0 }, scene);
+    seat.position = new BABYLON.Vector3(cx, 1.0, tableZ);
+    seat.material = woodMat;
+    const back = BABYLON.MeshBuilder.CreateBox("lBack_" + idx + i,
+      { width: 1.0, height: 0.9, depth: 0.1 }, scene);
+    back.position = new BABYLON.Vector3(cx, 1.5, tableZ + (i === 0 ? -0.45 : 0.45));
+    back.material = woodMat;
+    [[-0.4, -0.4], [-0.4, 0.4], [0.4, -0.4], [0.4, 0.4]].forEach(([clx, clz], j) => {
+      const cl = BABYLON.MeshBuilder.CreateCylinder("lCL_" + idx + i + j,
+        { diameter: 0.1, height: 0.95, tessellation: 4 }, scene);
+      cl.position = new BABYLON.Vector3(cx + clx, 0.55, tableZ + clz);
+      cl.material = woodMat;
+    });
+  });
+
+  // Bookshelves with books
+  const shelfMat = new BABYLON.StandardMaterial("lShelfMat_" + idx, scene);
+  shelfMat.diffuseColor = new BABYLON.Color3(0.35, 0.2, 0.08);
+  const bookColors = [
+    new BABYLON.Color3(0.85, 0.15, 0.5),
+    new BABYLON.Color3(0.2, 0.5, 0.9),
+    new BABYLON.Color3(0.2, 0.75, 0.35),
+    new BABYLON.Color3(0.9, 0.65, 0.1),
+    new BABYLON.Color3(0.5, 0.15, 0.8),
+  ];
+  [-1, 1].forEach((side) => {
+    const shelf = BABYLON.MeshBuilder.CreateBox("lShelf_" + idx + side,
+      { width: 0.35, height: 4, depth: 8 }, scene);
+    shelf.position = new BABYLON.Vector3(side * 7.5, 2, baseZ + ROOM_LENGTH * 0.68);
+    shelf.material = shelfMat;
+    for (let b = 0; b < 5; b++) {
+      const book = BABYLON.MeshBuilder.CreateBox("lBook_" + idx + side + b,
+        { width: 0.45, height: 0.65, depth: 1.0 }, scene);
+      book.position = new BABYLON.Vector3(
+        side * 7.3,
+        0.45 + b * 0.78,
+        baseZ + ROOM_LENGTH * 0.68 + (b - 2) * 1.3
+      );
+      const bm = new BABYLON.StandardMaterial("lBM_" + idx + side + b, scene);
+      bm.diffuseColor = bookColors[b];
+      book.material = bm;
+    }
+  });
+
+  // Puzzle pedestal near door
+  const pedZ = baseZ + ROOM_LENGTH - 8;
+  const pedBase = BABYLON.MeshBuilder.CreateCylinder("lPed_" + idx,
+    { diameter: 1.2, height: 1.0, tessellation: 8 }, scene);
+  pedBase.position = new BABYLON.Vector3(0, 0.5, pedZ);
+  const pedMat = new BABYLON.StandardMaterial("lPedMat_" + idx, scene);
+  pedMat.diffuseColor  = new BABYLON.Color3(0.5, 0.3, 0.8);
+  pedMat.emissiveColor = new BABYLON.Color3(0.2, 0.1, 0.4);
+  pedBase.material = pedMat;
+  const pedTop = BABYLON.MeshBuilder.CreateBox("lPedTop_" + idx,
+    { width: 1.0, height: 0.15, depth: 1.0 }, scene);
+  pedTop.position = new BABYLON.Vector3(0, 1.1, pedZ);
+  pedTop.material = pedMat;
 }
 
 // ─── Puzzle trigger ───────────────────────────────────────────────────────────

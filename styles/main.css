@@ -70,6 +70,12 @@ body {
   touch-action: auto;
 }
 
+/* Hide nav hint when puzzle is open */
+#ui-overlay.active ~ #castle-nav-hint,
+body:has(#ui-overlay.active) #castle-nav-hint {
+  display: none;
+}
+
 /* Puzzle panel card */
 .puzzle-panel {
   background: linear-gradient(145deg, #fff7e6, #fffbe8);
@@ -342,6 +348,28 @@ body {
   20%  { opacity: 1; transform: translate(-50%, -50%); }
   70%  { opacity: 1; }
   100% { opacity: 0; }
+}
+
+/* ===== Castle nav hint (bottom center, above joystick) ===== */
+#castle-nav-hint {
+  position: fixed;
+  bottom: 158px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.65);
+  color: #ffe066;
+  font-size: 1.1rem;
+  padding: 8px 22px;
+  border-radius: 20px;
+  z-index: 150;
+  pointer-events: none;
+  text-align: center;
+  animation: hintPulse 2s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.75; }
+  50%       { opacity: 1;    }
 }
 
 /* ===== Virtual Joystick (analog circle + knob) ===== */
