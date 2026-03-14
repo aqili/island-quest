@@ -185,12 +185,6 @@ export function createLettersCastleScene(engine, onExit) {
       fp.material = stoneMat;
     }
 
-    // Door slab (visual only)
-    const ds = BABYLON.MeshBuilder.CreateBox(`door_${r}`,
-      { width: doorW - 0.6, height: doorH - 0.3, depth: 0.25 }, scene);
-    ds.position.set(0, (doorH - 0.3) / 2, wallZ + 0.1);
-    ds.material = doorMat;
-
     // Puzzle sign above door
     _buildPuzzleSign(r, wallZ, doorH);
   }
@@ -378,8 +372,8 @@ export function createLettersCastleScene(engine, onExit) {
     const zMid = baseZ + ROOM_LENGTH / 2;
 
     const positions = [
-      new BABYLON.Vector3(-ROOM_WIDTH * 0.28, 1.4, zMid - 5),
-      new BABYLON.Vector3( ROOM_WIDTH * 0.28, 1.4, zMid + 5),
+      new BABYLON.Vector3(-3, 1.4, zMid - 5),
+      new BABYLON.Vector3( 3, 1.4, zMid + 5),
     ];
 
     [idxA, idxB].forEach((li, i) => {
@@ -393,6 +387,16 @@ export function createLettersCastleScene(engine, onExit) {
       _buildCrystalPedestal(sx, baseZ + ROOM_LENGTH * 0.30);
       _buildCrystalPedestal(sx, baseZ + ROOM_LENGTH * 0.70);
     }
+  }
+
+  // ── HSV helper (avoids BABYLON.Color3.FromHSV which may not exist) ─────────
+  function _hsvToColor3(h, s, v) {
+    const i = Math.floor(h / 60) % 6;
+    const f = h / 60 - Math.floor(h / 60);
+    const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+    const table = [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]];
+    const [r, g, b] = table[i];
+    return new BABYLON.Color3(r, g, b);
   }
 
   // ── Letter tile ────────────────────────────────────────────────────────────
@@ -437,7 +441,7 @@ export function createLettersCastleScene(engine, onExit) {
     ring.rotation.x = Math.PI / 2;
 
     const hue360 = (index / 6) * 360;
-    const c = BABYLON.Color3.FromHSV(hue360, 0.8, 0.9);
+    const c = _hsvToColor3(hue360, 0.8, 0.9);
     const rm = new BABYLON.StandardMaterial(`ltRingMat_${index}`, scene);
     rm.diffuseColor  = c;
     rm.emissiveColor = c.scale(0.45);
@@ -540,15 +544,19 @@ export function createLettersCastleScene(engine, onExit) {
     const tileArea = document.createElement("div");
     tileArea.className = "word-tiles";
 
+    // selected = array of { ltr, btn } so we can re-enable buttons on removal
     const selected = [];
 
     function _refresh() {
       display.innerHTML = "";
-      selected.forEach((ltr, i) => {
+      selected.forEach((item, i) => {
         const w = document.createElement("span");
         w.className = "sentence-word";
-        w.textContent = ltr;
+        w.textContent = item.ltr;
         w.onclick = () => {
+          // Re-enable the source button
+          item.btn.disabled = false;
+          item.btn.classList.remove("used");
           selected.splice(i, 1);
           _refresh();
         };
@@ -556,12 +564,17 @@ export function createLettersCastleScene(engine, onExit) {
       });
       // check auto-complete
       if (selected.length === TARGET_LETTERS.length) {
-        const attempt = selected.join("");
+        const attempt = selected.map(x => x.ltr).join("");
         if (attempt === TARGET_WORD) {
           _onWordCorrect();
         } else {
           feedback.className = "feedback wrong";
           feedback.textContent = "❌ Not quite — try again!";
+          // Re-enable all buttons and clear selection
+          selected.forEach(item => {
+            item.btn.disabled = false;
+            item.btn.classList.remove("used");
+          });
           selected.length = 0;
           _refresh();
         }
@@ -575,7 +588,9 @@ export function createLettersCastleScene(engine, onExit) {
       btn.className = "btn btn-word";
       btn.textContent = ltr;
       btn.onclick = () => {
-        selected.push(ltr);
+        btn.disabled = true;
+        btn.classList.add("used");
+        selected.push({ ltr, btn });
         _refresh();
       };
       tileArea.appendChild(btn);
@@ -666,16 +681,6 @@ export function createLettersCastleScene(engine, onExit) {
     setTimeout(() => { if (b.parentNode) b.parentNode.removeChild(b); }, 2500);
   }
 
-  // ── Room transition trigger ────────────────────────────────────────────────
-  const DOOR_TRIGGERS = [];
-  for (let r = 0; r < NUM_ROOMS - 1; r++) {
-    DOOR_TRIGGERS.push({
-      z: (r + 1) * ROOM_LENGTH,
-      roomForward: r + 1,
-      roomBack: r
-    });
-  }
-
   // ── Render loop ────────────────────────────────────────────────────────────
   let time = 0;
 
@@ -702,7 +707,7 @@ export function createLettersCastleScene(engine, onExit) {
             new BABYLON.Vector3(px, py, pz),
             tile.root.position
           );
-          if (dist < 3.0) {
+          if (dist < 5.0) {
             tile.collected = true;
             collectedLetters.push(tile.letter);
             tile.root.setEnabled(false);
