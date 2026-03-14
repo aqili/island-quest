@@ -27,6 +27,7 @@ const ROOMS = [
 ];
 
 const ROOM_LENGTH = 36; // Z-offset between rooms
+const ROOM_WIDTH  = 48; // triple the original 16 — wide open rooms
 
 /**
  * @param {BABYLON.Engine} engine
@@ -63,11 +64,11 @@ export function createMathCastleScene(engine, onExit) {
   const cam = player.camera;
   cam.alpha            = -Math.PI / 2;   // behind player (looking toward +Z)
   cam.beta             = Math.PI / 3;    // 60° from vertical — room visible from above
-  cam.radius           = 22;
+  cam.radius           = 40;             // wider room needs more zoom-out
   cam.lowerBetaLimit   = 0.4;
   cam.upperBetaLimit   = Math.PI / 2.3;
-  cam.lowerRadiusLimit = 12;
-  cam.upperRadiusLimit = 30;
+  cam.lowerRadiusLimit = 16;
+  cam.upperRadiusLimit = 55;
 
   // HUD
   const hudLocation = document.getElementById("hud-location");
@@ -186,7 +187,7 @@ function _buildRoom(scene, idx, floorColor, doors) {
 
   // Floor
   const floor = BABYLON.MeshBuilder.CreateBox("floor_" + idx,
-    { width: 16, height: 0.2, depth: ROOM_LENGTH }, scene);
+    { width: ROOM_WIDTH, height: 0.2, depth: ROOM_LENGTH }, scene);
   floor.position = new BABYLON.Vector3(0, 0, baseZ + ROOM_LENGTH / 2);
   floor.material = mat;
 
@@ -199,13 +200,13 @@ function _buildRoom(scene, idx, floorColor, doors) {
   // Left wall
   const lWall = BABYLON.MeshBuilder.CreateBox("lWall_" + idx,
     { width: 0.3, height: 8, depth: ROOM_LENGTH }, scene);
-  lWall.position = new BABYLON.Vector3(-8.15, 4, baseZ + ROOM_LENGTH / 2);
+  lWall.position = new BABYLON.Vector3(-(ROOM_WIDTH / 2 + 0.15), 4, baseZ + ROOM_LENGTH / 2);
   lWall.material = wallMat;
 
   // Right wall
   const rWall = BABYLON.MeshBuilder.CreateBox("rWall_" + idx,
     { width: 0.3, height: 8, depth: ROOM_LENGTH }, scene);
-  rWall.position = new BABYLON.Vector3(8.15, 4, baseZ + ROOM_LENGTH / 2);
+  rWall.position = new BABYLON.Vector3(ROOM_WIDTH / 2 + 0.15, 4, baseZ + ROOM_LENGTH / 2);
   rWall.material = wallMat;
 
   // NOTE: No ceiling — open top allows the top-down camera to see inside the room
@@ -213,7 +214,7 @@ function _buildRoom(scene, idx, floorColor, doors) {
   // Back wall (entry side)
   if (idx === 0) {
     const backWall = BABYLON.MeshBuilder.CreateBox("backWall",
-      { width: 16, height: 8, depth: 0.3 }, scene);
+      { width: ROOM_WIDTH, height: 8, depth: 0.3 }, scene);
     backWall.position = new BABYLON.Vector3(0, 4, baseZ);
     backWall.material = wallMat;
     // Door gap in back wall
@@ -228,12 +229,14 @@ function _buildRoom(scene, idx, floorColor, doors) {
   // Door to NEXT room (at far end of this room)
   const doorZ = baseZ + ROOM_LENGTH;
   const frontWall = BABYLON.MeshBuilder.CreateBox("frontWall_" + idx,
-    { width: 16, height: 8, depth: 0.3 }, scene);
+    { width: ROOM_WIDTH, height: 8, depth: 0.3 }, scene);
   frontWall.position = new BABYLON.Vector3(0, 4, doorZ);
   frontWall.material = wallMat;
 
-  // Door frame (left + right sections, gap in middle)
-  [[-5, 6], [5, 6]].forEach(([dx, dw], j) => {
+  // Door frame — left and right sections flanking a 4-unit gap at center
+  const sideW = (ROOM_WIDTH - 4) / 2;   // half the wall space on each side of the door gap
+  const sideX = 2 + sideW / 2;           // center X of each door segment
+  [[-sideX, sideW], [sideX, sideW]].forEach(([dx, dw], j) => {
     const seg = BABYLON.MeshBuilder.CreateBox("doorSeg_" + idx + j,
       { width: dw, height: 8, depth: 0.3 }, scene);
     seg.position = new BABYLON.Vector3(dx, 4, doorZ);
@@ -259,13 +262,13 @@ function _buildRoom(scene, idx, floorColor, doors) {
     : new BABYLON.Color3(0.85, 0.1, 0.1);
   doorSlab.material = doorSlabMat;
 
-  // Two torches (one each side wall) per room
-  [-6, 6].forEach((tx, ti) => {
+  // Two torches — pushed out to the side walls of the wider room
+  [-(ROOM_WIDTH / 2 - 2), ROOM_WIDTH / 2 - 2].forEach((tx, ti) => {
     const torch = new BABYLON.PointLight("torch_" + idx + "_" + ti,
       new BABYLON.Vector3(tx, 6, baseZ + ROOM_LENGTH / 2), scene);
     torch.diffuse   = new BABYLON.Color3(1, 0.75, 0.3);
     torch.intensity = 1.5;
-    torch.range     = 40;
+    torch.range     = 55;
   });
 
   // Navigation beacon — glowing pulsing sphere above the door
@@ -298,7 +301,7 @@ function _addFurniture(scene, idx, baseZ, floorColor) {
     floorColor.b * 0.25
   );
   const rug = BABYLON.MeshBuilder.CreateBox("mRug_" + idx,
-    { width: 11, height: 0.05, depth: 24 }, scene);
+    { width: 36, height: 0.05, depth: 24 }, scene);
   rug.position = new BABYLON.Vector3(0, 0.12, midZ);
   rug.material = rugMat;
 
@@ -349,16 +352,17 @@ function _addFurniture(scene, idx, baseZ, floorColor) {
     new BABYLON.Color3(0.6, 0.1, 0.7),
   ];
   [-1, 1].forEach((side) => {
+    const shelfX = side * (ROOM_WIDTH / 2 - 0.5);
     const shelf = BABYLON.MeshBuilder.CreateBox("mShelf_" + idx + side,
       { width: 0.35, height: 4, depth: 8 }, scene);
-    shelf.position = new BABYLON.Vector3(side * 7.5, 2, baseZ + ROOM_LENGTH * 0.68);
+    shelf.position = new BABYLON.Vector3(shelfX, 2, baseZ + ROOM_LENGTH * 0.68);
     shelf.material = shelfMat;
     // Books on shelf
     for (let b = 0; b < 5; b++) {
       const book = BABYLON.MeshBuilder.CreateBox("mBook_" + idx + side + b,
         { width: 0.45, height: 0.65, depth: 1.0 }, scene);
       book.position = new BABYLON.Vector3(
-        side * 7.3,
+        side * (ROOM_WIDTH / 2 - 0.7),
         0.45 + b * 0.78,
         baseZ + ROOM_LENGTH * 0.68 + (b - 2) * 1.3
       );
