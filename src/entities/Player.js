@@ -115,15 +115,95 @@ export function createPlayer(scene) {
   camera.upperBetaLimit   = Math.PI / 2.2;
   camera.attachControl(scene.getEngine().getRenderingCanvas(), true);
 
-  // ── Input ────────────────────────────────────────────────────────────────
+  // ── Keyboard input ───────────────────────────────────────────────────────
   const keys = {};
   const onKeyDown = e => { keys[e.code] = true; };
   const onKeyUp   = e => { keys[e.code] = false; };
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup",   onKeyUp);
+
+  // ── Virtual joystick (touch devices) ────────────────────────────────────
+  // Joystick state — updated by touch handlers, read by update()
+  let joy = { dx: 0, dz: 0 };
+
+  const BASE_R  = 55;  // px radius of the outer ring
+  const KNOB_R  = 26;  // px radius of the draggable knob
+  const MAX_OFF = BASE_R - KNOB_R; // max knob travel from center
+
+  // Build joystick DOM
+  const joyWrap = document.createElement("div");
+  joyWrap.id = "joy-wrap";
+
+  const joyBase = document.createElement("div");
+  joyBase.id = "joy-base";
+
+  const joyKnob = document.createElement("div");
+  joyKnob.id = "joy-knob";
+
+  joyBase.appendChild(joyKnob);
+  joyWrap.appendChild(joyBase);
+  document.body.appendChild(joyWrap);
+
+  let activeTouchId = null;
+  let baseX = 0, baseY = 0;
+
+  function _joyMove(clientX, clientY) {
+    let offX = clientX - baseX;
+    let offY = clientY - baseY;
+    const dist = Math.sqrt(offX * offX + offY * offY);
+    if (dist > MAX_OFF) {
+      offX = offX / dist * MAX_OFF;
+      offY = offY / dist * MAX_OFF;
+    }
+    joyKnob.style.transform = `translate(${offX}px, ${offY}px)`;
+    joy.dx =  offX / MAX_OFF;   // -1 … +1  (left-right)
+    joy.dz = -offY / MAX_OFF;   // -1 … +1  (forward-back, screen-Y is inverted)
+  }
+
+  function _joyReset() {
+    joyKnob.style.transform = "translate(0px, 0px)";
+    joy.dx = 0;
+    joy.dz = 0;
+    activeTouchId = null;
+  }
+
+  joyWrap.addEventListener("touchstart", e => {
+    e.preventDefault();
+    if (activeTouchId !== null) return;
+    const t = e.changedTouches[0];
+    activeTouchId = t.identifier;
+    const rect = joyBase.getBoundingClientRect();
+    baseX = rect.left + rect.width  / 2;
+    baseY = rect.top  + rect.height / 2;
+    _joyMove(t.clientX, t.clientY);
+  }, { passive: false });
+
+  window.addEventListener("touchmove", e => {
+    if (activeTouchId === null) return;
+    for (const t of e.changedTouches) {
+      if (t.identifier === activeTouchId) {
+        e.preventDefault();
+        _joyMove(t.clientX, t.clientY);
+        break;
+      }
+    }
+  }, { passive: false });
+
+  window.addEventListener("touchend", e => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === activeTouchId) { _joyReset(); break; }
+    }
+  });
+  window.addEventListener("touchcancel", _joyReset);
+
+  // Clean up on scene dispose
   scene.onDisposeObservable.addOnce(() => {
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup",   onKeyUp);
+    window.removeEventListener("touchmove", _joyMove);
+    window.removeEventListener("touchend",  _joyReset);
+    window.removeEventListener("touchcancel", _joyReset);
+    if (joyWrap.parentNode) joyWrap.parentNode.removeChild(joyWrap);
   });
 
   const SPEED = 0.15;
@@ -133,11 +213,17 @@ export function createPlayer(scene) {
   function update() {
     camera.target = root.position;
 
+    // Merge keyboard + joystick input
     let dx = 0, dz = 0;
     if (keys["KeyW"] || keys["ArrowUp"])    dz =  1;
     if (keys["KeyS"] || keys["ArrowDown"])  dz = -1;
     if (keys["KeyA"] || keys["ArrowLeft"])  dx = -1;
     if (keys["KeyD"] || keys["ArrowRight"]) dx =  1;
+    // Joystick overrides keyboard if touched
+    if (joy.dx !== 0 || joy.dz !== 0) {
+      dx = joy.dx;
+      dz = joy.dz;
+    }
 
     const moving = dx !== 0 || dz !== 0;
 

@@ -336,6 +336,45 @@ body {
   100% { opacity: 0; }
 }
 
+/* ===== Virtual Joystick ===== */
+#joy-wrap {
+  position: fixed;
+  bottom: 36px;
+  left: 36px;
+  z-index: 150;
+  pointer-events: auto;
+  /* hide on non-touch devices */
+  display: none;
+}
+
+@media (pointer: coarse) {
+  #joy-wrap { display: block; }
+}
+
+#joy-base {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 3px solid rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.30);
+  touch-action: none;
+}
+
+#joy-knob {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.70);
+  border: 2px solid rgba(255, 255, 255, 0.90);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  transition: transform 0.05s ease-out;
+  pointer-events: none;
+}
+
 /* ===== Loading screen ===== */
 #loading-screen {
   position: fixed;
