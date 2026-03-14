@@ -19,21 +19,19 @@ const ROOMS = [
   { name: "👑 Throne Room",                  pool: "throne", type: "throne",     wallColor: new BABYLON.Color3(0.50, 0.38, 0.68), accentColor: new BABYLON.Color3(0.78, 0.55, 0.95) }
 ];
 
-const ROOM_LENGTH = 18;
+const ROOM_LENGTH = 22;
+const ROOM_WIDTH  = 14;
+const ROOM_HEIGHT = 6.5;
 
 export function createLangCastleScene(engine, onExit) {
   const scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color4(0.04, 0.02, 0.08, 1);
+  scene.clearColor = new BABYLON.Color4(0.06, 0.04, 0.12, 1);
 
-  scene.fogMode    = BABYLON.Scene.FOGMODE_LINEAR;
-  scene.fogStart   = 20;
-  scene.fogEnd     = 75;
-  scene.fogColor   = new BABYLON.Color3(0.06, 0.03, 0.10);
-
+  // Brighter ambient
   const ambient = new BABYLON.HemisphericLight("ambLight", new BABYLON.Vector3(0, 1, 0), scene);
-  ambient.intensity   = 0.28;
-  ambient.diffuse     = new BABYLON.Color3(0.80, 0.75, 0.98);
-  ambient.groundColor = new BABYLON.Color3(0.04, 0.02, 0.06);
+  ambient.intensity   = 0.60;
+  ambient.diffuse     = new BABYLON.Color3(0.90, 0.85, 1.0);
+  ambient.groundColor = new BABYLON.Color3(0.10, 0.06, 0.18);
 
   const doors = [];
   const torchLights = [];
@@ -43,7 +41,12 @@ export function createLangCastleScene(engine, onExit) {
   });
 
   const player = createPlayer(scene);
-  player.mesh.position = new BABYLON.Vector3(0, 0.5, 2);
+  player.mesh.position = new BABYLON.Vector3(0, 0.5, 6);
+
+  // Pull camera closer to avoid wall clipping
+  player.camera.radius          = 8;
+  player.camera.lowerRadiusLimit = 4;
+  player.camera.upperRadiusLimit = 14;
 
   const hudLocation = document.getElementById("hud-location");
   const hudStars    = document.getElementById("hud-stars");
@@ -59,11 +62,11 @@ export function createLangCastleScene(engine, onExit) {
     if (puzzleActive || switching) return;
     player.update();
 
-    // Purple torch flicker
+    // Purple torch flicker — brighter range
     flickerT += 0.07;
     torchLights.forEach((tl, i) => {
-      tl.intensity = 1.0 + 0.30 * Math.sin(flickerT * 2.8 + i * 1.9)
-                         + 0.18 * Math.sin(flickerT * 6.5 + i * 2.7);
+      tl.intensity = 2.0 + 0.45 * Math.sin(flickerT * 2.8 + i * 1.9)
+                         + 0.22 * Math.sin(flickerT * 6.5 + i * 2.7);
     });
 
     const pz = player.mesh.position.z;
@@ -115,6 +118,10 @@ export function createLangCastleScene(engine, onExit) {
 function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   const baseZ    = idx * ROOM_LENGTH;
   const isThrone = idx === 3;
+  const halfW    = ROOM_WIDTH / 2;      // 7
+  const wallX    = halfW + 0.175;       // 7.175
+  const ceilY    = ROOM_HEIGHT;         // 6.5
+  const wallMidY = ROOM_HEIGHT / 2;     // 3.25
 
   // ── Materials ──────────────────────────────────────────────────────────
   const stoneMat = new BABYLON.StandardMaterial("lStone_" + idx, scene);
@@ -129,51 +136,50 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
 
   const ceilMat = new BABYLON.StandardMaterial("lCeil_" + idx, scene);
   ceilMat.diffuseColor = new BABYLON.Color3(
-    wallColor.r * 0.48, wallColor.g * 0.44, wallColor.b * 0.55);
+    wallColor.r * 0.55, wallColor.g * 0.50, wallColor.b * 0.62);
 
   // ── Floor ──────────────────────────────────────────────────────────────
   const floor = BABYLON.MeshBuilder.CreateBox("lFloorMesh_" + idx,
-    { width: 8, height: 0.22, depth: ROOM_LENGTH }, scene);
+    { width: ROOM_WIDTH, height: 0.22, depth: ROOM_LENGTH }, scene);
   floor.position = new BABYLON.Vector3(0, 0, baseZ + ROOM_LENGTH / 2);
   floor.material = floorMat;
-  _applyTileTexture(scene, floorMat, wallColor, 8, 18, true);
+  _applyTileTexture(scene, floorMat, wallColor, 14, 22, true);
 
   // Carpet runner
   const carpetMat = new BABYLON.StandardMaterial("lCarpet_" + idx, scene);
   carpetMat.diffuseColor = isThrone
-    ? new BABYLON.Color3(0.55, 0.12, 0.72)   // deep purple for throne
+    ? new BABYLON.Color3(0.55, 0.12, 0.72)
     : new BABYLON.Color3(accentColor.r * 0.60, accentColor.g * 0.30, accentColor.b * 0.70);
   carpetMat.specularColor = new BABYLON.Color3(0.05, 0.02, 0.08);
 
   const carpet = BABYLON.MeshBuilder.CreateBox("lCarpet_" + idx,
-    { width: 2.2, height: 0.02, depth: ROOM_LENGTH - 1 }, scene);
+    { width: 2.8, height: 0.02, depth: ROOM_LENGTH - 1 }, scene);
   carpet.position = new BABYLON.Vector3(0, 0.12, baseZ + ROOM_LENGTH / 2);
   carpet.material = carpetMat;
 
   // ── Walls ──────────────────────────────────────────────────────────────
   const lWall = BABYLON.MeshBuilder.CreateBox("lLWall_" + idx,
-    { width: 0.35, height: 4.2, depth: ROOM_LENGTH }, scene);
-  lWall.position = new BABYLON.Vector3(-4.15, 2.1, baseZ + ROOM_LENGTH / 2);
+    { width: 0.35, height: ROOM_HEIGHT, depth: ROOM_LENGTH }, scene);
+  lWall.position = new BABYLON.Vector3(-wallX, wallMidY, baseZ + ROOM_LENGTH / 2);
   lWall.material = stoneMat;
 
   const rWall = BABYLON.MeshBuilder.CreateBox("lRWall_" + idx,
-    { width: 0.35, height: 4.2, depth: ROOM_LENGTH }, scene);
-  rWall.position = new BABYLON.Vector3(4.15, 2.1, baseZ + ROOM_LENGTH / 2);
+    { width: 0.35, height: ROOM_HEIGHT, depth: ROOM_LENGTH }, scene);
+  rWall.position = new BABYLON.Vector3(wallX, wallMidY, baseZ + ROOM_LENGTH / 2);
   rWall.material = stoneMat;
 
   // ── Ceiling with beams ────────────────────────────────────────────────
   const ceil = BABYLON.MeshBuilder.CreateBox("lCeilMesh_" + idx,
-    { width: 8, height: 0.22, depth: ROOM_LENGTH }, scene);
-  ceil.position = new BABYLON.Vector3(0, 4.2, baseZ + ROOM_LENGTH / 2);
+    { width: ROOM_WIDTH, height: 0.22, depth: ROOM_LENGTH }, scene);
+  ceil.position = new BABYLON.Vector3(0, ceilY, baseZ + ROOM_LENGTH / 2);
   ceil.material = ceilMat;
 
-  // Star pattern on throne room ceiling
   const beamMat = new BABYLON.StandardMaterial("lBeam_" + idx, scene);
   beamMat.diffuseColor = new BABYLON.Color3(0.22, 0.15, 0.35);
-  [3, 7, 11, 15].forEach((bz, bi) => {
+  [4, 9, 14, 19].forEach((bz, bi) => {
     const beam = BABYLON.MeshBuilder.CreateBox("lBeam_" + idx + bi,
-      { width: 8.4, height: 0.30, depth: 0.35 }, scene);
-    beam.position = new BABYLON.Vector3(0, 4.05, baseZ + bz);
+      { width: ROOM_WIDTH + 0.4, height: 0.35, depth: 0.40 }, scene);
+    beam.position = new BABYLON.Vector3(0, ceilY - 0.22, baseZ + bz);
     beam.material = beamMat;
   });
 
@@ -183,24 +189,24 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
     wallColor.r * 0.88, wallColor.g * 0.84, wallColor.b * 0.92);
   pillarMat.specularColor = new BABYLON.Color3(0.08, 0.06, 0.12);
 
-  [5, 12].forEach((pz, pi) => {
-    [-3.0, 3.0].forEach((px, pxi) => {
+  [6, 16].forEach((pz, pi) => {
+    [-5.5, 5.5].forEach((px, pxi) => {
       const shaft = BABYLON.MeshBuilder.CreateCylinder(
         "lPillarShaft_" + idx + pi + pxi,
-        { diameter: 0.55, height: 3.8, tessellation: 12 }, scene);
-      shaft.position = new BABYLON.Vector3(px, 1.9, baseZ + pz);
+        { diameter: 0.60, height: 6.0, tessellation: 12 }, scene);
+      shaft.position = new BABYLON.Vector3(px, 3.0, baseZ + pz);
       shaft.material = pillarMat;
 
       const cap = BABYLON.MeshBuilder.CreateBox(
         "lPillarCap_" + idx + pi + pxi,
-        { width: 0.72, height: 0.22, depth: 0.72 }, scene);
-      cap.position = new BABYLON.Vector3(px, 3.91, baseZ + pz);
+        { width: 0.82, height: 0.26, depth: 0.82 }, scene);
+      cap.position = new BABYLON.Vector3(px, 6.13, baseZ + pz);
       cap.material = pillarMat;
 
       const base = BABYLON.MeshBuilder.CreateBox(
         "lPillarBase_" + idx + pi + pxi,
-        { width: 0.72, height: 0.20, depth: 0.72 }, scene);
-      base.position = new BABYLON.Vector3(px, 0.10, baseZ + pz);
+        { width: 0.82, height: 0.22, depth: 0.82 }, scene);
+      base.position = new BABYLON.Vector3(px, 0.11, baseZ + pz);
       base.material = pillarMat;
     });
   });
@@ -215,54 +221,54 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   bannerTrimMat.diffuseColor  = new BABYLON.Color3(0.80, 0.72, 0.95);
   bannerTrimMat.emissiveColor = new BABYLON.Color3(0.10, 0.05, 0.15);
 
-  [5, 12].forEach((pz, pi) => {
-    [-3.05, 3.05].forEach((px, pxi) => {
+  [6, 16].forEach((pz, pi) => {
+    [-5.55, 5.55].forEach((px, pxi) => {
       const banner = BABYLON.MeshBuilder.CreateBox(
         "lBanner_" + idx + pi + pxi,
-        { width: 0.5, height: 1.4, depth: 0.04 }, scene);
+        { width: 0.6, height: 2.0, depth: 0.05 }, scene);
       banner.position = new BABYLON.Vector3(
-        px + (px < 0 ? 0.32 : -0.32), 2.5, baseZ + pz);
+        px + (px < 0 ? 0.36 : -0.36), 4.0, baseZ + pz);
       banner.material = bannerMat;
 
       const trim = BABYLON.MeshBuilder.CreateBox(
         "lBannerTrim_" + idx + pi + pxi,
-        { width: 0.5, height: 0.12, depth: 0.05 }, scene);
+        { width: 0.6, height: 0.14, depth: 0.06 }, scene);
       trim.position = new BABYLON.Vector3(
-        px + (px < 0 ? 0.32 : -0.32), 1.74, baseZ + pz);
+        px + (px < 0 ? 0.36 : -0.36), 2.95, baseZ + pz);
       trim.material = bannerTrimMat;
     });
   });
 
   // ── Wall torches (purple-tinted) ──────────────────────────────────────
-  [3, 8, 13].forEach((tz, ti) => {
+  [4, 10, 17].forEach((tz, ti) => {
     [-1, 1].forEach((side) => {
-      _buildWallTorch(scene, side * 3.9, baseZ + tz, idx, ti, side, torchLights);
+      _buildWallTorch(scene, side * 6.9, baseZ + tz, idx, ti, side, torchLights);
     });
   });
 
   // Throne extras
   if (isThrone) {
-    _buildChandelier(scene, 0, 3.8, baseZ + ROOM_LENGTH / 2, accentColor, torchLights);
+    _buildChandelier(scene, 0, 5.5, baseZ + ROOM_LENGTH / 2, accentColor, torchLights);
     _buildThroneChair(scene, 0, baseZ + ROOM_LENGTH - 3, accentColor);
   }
 
   // ── Entry back wall ───────────────────────────────────────────────────
   if (idx === 0) {
     const backWall = BABYLON.MeshBuilder.CreateBox("lBackWall",
-      { width: 8, height: 4.2, depth: 0.35 }, scene);
-    backWall.position = new BABYLON.Vector3(0, 2.1, baseZ);
+      { width: ROOM_WIDTH, height: ROOM_HEIGHT, depth: 0.35 }, scene);
+    backWall.position = new BABYLON.Vector3(0, wallMidY, baseZ);
     backWall.material = stoneMat;
 
     const exitDoor = BABYLON.MeshBuilder.CreateBox("lExitDoor",
-      { width: 2, height: 2.8, depth: 0.4 }, scene);
-    exitDoor.position = new BABYLON.Vector3(0, 1.4, baseZ);
+      { width: 2.4, height: 3.5, depth: 0.4 }, scene);
+    exitDoor.position = new BABYLON.Vector3(0, 1.75, baseZ);
     const edMat = new BABYLON.StandardMaterial("lExitDoorMat", scene);
     edMat.diffuseColor = new BABYLON.Color3(0.06, 0.03, 0.10);
     exitDoor.material = edMat;
 
     const exitArch = BABYLON.MeshBuilder.CreateSphere("lExitArch",
-      { diameterX: 2.0, diameterY: 0.9, diameterZ: 0.4, segments: 8 }, scene);
-    exitArch.position = new BABYLON.Vector3(0, 2.95, baseZ);
+      { diameterX: 2.4, diameterY: 1.0, diameterZ: 0.4, segments: 8 }, scene);
+    exitArch.position = new BABYLON.Vector3(0, 3.6, baseZ);
     exitArch.material = edMat;
   }
 
@@ -270,33 +276,33 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   const doorZ = baseZ + ROOM_LENGTH;
 
   const frontWall = BABYLON.MeshBuilder.CreateBox("lFrontWall_" + idx,
-    { width: 8, height: 4.2, depth: 0.35 }, scene);
-  frontWall.position = new BABYLON.Vector3(0, 2.1, doorZ);
+    { width: ROOM_WIDTH, height: ROOM_HEIGHT, depth: 0.35 }, scene);
+  frontWall.position = new BABYLON.Vector3(0, wallMidY, doorZ);
   frontWall.material = stoneMat;
 
-  [[-2.5, 3], [2.5, 3]].forEach(([dx, dw], j) => {
+  [[-4.0, 6.0], [4.0, 6.0]].forEach(([dx, dw], j) => {
     const seg = BABYLON.MeshBuilder.CreateBox("lDoorSeg_" + idx + j,
-      { width: dw, height: 4.2, depth: 0.35 }, scene);
-    seg.position = new BABYLON.Vector3(dx, 2.1, doorZ);
+      { width: dw, height: ROOM_HEIGHT, depth: 0.35 }, scene);
+    seg.position = new BABYLON.Vector3(dx, wallMidY, doorZ);
     seg.material = stoneMat;
   });
 
   const topFill = BABYLON.MeshBuilder.CreateBox("lDoorTop_" + idx,
-    { width: 2, height: 1.4, depth: 0.35 }, scene);
-  topFill.position = new BABYLON.Vector3(0, 3.5, doorZ);
+    { width: 2.2, height: 3.0, depth: 0.35 }, scene);
+  topFill.position = new BABYLON.Vector3(0, 5.0, doorZ);
   topFill.material = stoneMat;
 
   const archMat = new BABYLON.StandardMaterial("lArch_" + idx, scene);
   archMat.diffuseColor = new BABYLON.Color3(
     wallColor.r * 0.90, wallColor.g * 0.88, wallColor.b * 1.0);
   const doorArch = BABYLON.MeshBuilder.CreateSphere("lDoorArch_" + idx,
-    { diameterX: 2.0, diameterY: 1.0, diameterZ: 0.38, segments: 8 }, scene);
-  doorArch.position = new BABYLON.Vector3(0, 2.85, doorZ);
+    { diameterX: 2.2, diameterY: 1.2, diameterZ: 0.40, segments: 8 }, scene);
+  doorArch.position = new BABYLON.Vector3(0, 3.6, doorZ);
   doorArch.material = archMat;
 
   const doorSlab = BABYLON.MeshBuilder.CreateBox("lDoorSlab_" + idx,
-    { width: 2, height: 2.75, depth: 0.22 }, scene);
-  doorSlab.position = new BABYLON.Vector3(0, 1.375, doorZ);
+    { width: 2.0, height: 3.5, depth: 0.22 }, scene);
+  doorSlab.position = new BABYLON.Vector3(0, 1.75, doorZ);
   const doorSlabMat = new BABYLON.StandardMaterial("lDoorSlabMat_" + idx, scene);
   const save   = SaveManager.load();
   const solved = save.languageIsland.roomsCompleted[idx];
@@ -307,8 +313,8 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   const handleMat = new BABYLON.StandardMaterial("lHandle_" + idx, scene);
   handleMat.diffuseColor = new BABYLON.Color3(0.55, 0.42, 0.72);
   const handle = BABYLON.MeshBuilder.CreateSphere("lHandle_" + idx,
-    { diameter: 0.18, segments: 6 }, scene);
-  handle.position = new BABYLON.Vector3(0.7, 1.5, doorZ - 0.15);
+    { diameter: 0.20, segments: 6 }, scene);
+  handle.position = new BABYLON.Vector3(0.75, 2.0, doorZ - 0.15);
   handle.material = handleMat;
 
   doors.push({ mesh: doorSlab, z: doorZ });
@@ -321,13 +327,13 @@ function _buildWallTorch(scene, x, z, roomIdx, torchIdx, side, torchLights) {
   metalMat.diffuseColor = new BABYLON.Color3(0.30, 0.22, 0.38);
 
   const arm = BABYLON.MeshBuilder.CreateBox("lTorchArm_" + roomIdx + torchIdx + side,
-    { width: 0.36, height: 0.08, depth: 0.08 }, scene);
-  arm.position = new BABYLON.Vector3(x, 2.6, z);
+    { width: 0.40, height: 0.09, depth: 0.09 }, scene);
+  arm.position = new BABYLON.Vector3(x, 3.8, z);
   arm.material = metalMat;
 
   const handle = BABYLON.MeshBuilder.CreateCylinder("lTorchHandle_" + roomIdx + torchIdx + side,
-    { diameter: 0.10, height: 0.55, tessellation: 8 }, scene);
-  handle.position = new BABYLON.Vector3(x + side * (-0.16), 2.75, z);
+    { diameter: 0.11, height: 0.60, tessellation: 8 }, scene);
+  handle.position = new BABYLON.Vector3(x + side * (-0.18), 3.95, z);
   handle.material = metalMat;
 
   const flameMat = new BABYLON.StandardMaterial("lFlame_" + roomIdx + torchIdx + side, scene);
@@ -335,18 +341,18 @@ function _buildWallTorch(scene, x, z, roomIdx, torchIdx, side, torchLights) {
   flameMat.emissiveColor = new BABYLON.Color3(0.45, 0.10, 0.65);
 
   const flame = BABYLON.MeshBuilder.CreateCylinder("lFlame_" + roomIdx + torchIdx + side,
-    { diameterTop: 0, diameterBottom: 0.18, height: 0.32, tessellation: 8 }, scene);
-  flame.position = new BABYLON.Vector3(x + side * (-0.16), 3.08, z);
+    { diameterTop: 0, diameterBottom: 0.20, height: 0.36, tessellation: 8 }, scene);
+  flame.position = new BABYLON.Vector3(x + side * (-0.18), 4.30, z);
   flame.material = flameMat;
 
   const light = new BABYLON.PointLight(
     "lTorchLight_" + roomIdx + torchIdx + side,
-    new BABYLON.Vector3(x + side * (-0.16), 3.1, z),
+    new BABYLON.Vector3(x + side * (-0.18), 4.35, z),
     scene
   );
   light.diffuse   = new BABYLON.Color3(0.75, 0.45, 1.0);
-  light.intensity = 1.0;
-  light.range     = 10;
+  light.intensity = 2.0;
+  light.range     = 16;
   torchLights.push(light);
 }
 
@@ -357,13 +363,13 @@ function _buildChandelier(scene, x, y, z, accentColor, torchLights) {
   metalMat.diffuseColor = new BABYLON.Color3(0.48, 0.30, 0.62);
 
   const ring = BABYLON.MeshBuilder.CreateTorus("lChandRing",
-    { diameter: 2.0, thickness: 0.08, tessellation: 32 }, scene);
+    { diameter: 2.4, thickness: 0.10, tessellation: 32 }, scene);
   ring.position = new BABYLON.Vector3(x, y, z);
   ring.material = metalMat;
 
   const chain = BABYLON.MeshBuilder.CreateCylinder("lChandChain",
-    { diameter: 0.06, height: 0.55, tessellation: 6 }, scene);
-  chain.position = new BABYLON.Vector3(x, y + 0.28, z);
+    { diameter: 0.07, height: 1.2, tessellation: 6 }, scene);
+  chain.position = new BABYLON.Vector3(x, y + 0.6, z);
   chain.material = metalMat;
 
   const crystalMat = new BABYLON.StandardMaterial("lCrystal", scene);
@@ -373,19 +379,19 @@ function _buildChandelier(scene, x, y, z, accentColor, torchLights) {
 
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2;
-    const cx2 = x + Math.cos(a) * 0.95;
-    const cz2 = z + Math.sin(a) * 0.95;
+    const cx2 = x + Math.cos(a) * 1.1;
+    const cz2 = z + Math.sin(a) * 1.1;
 
     const crystal = BABYLON.MeshBuilder.CreateBox("lCrystal_" + i,
-      { width: 0.10, height: 0.28, depth: 0.10 }, scene);
+      { width: 0.12, height: 0.32, depth: 0.12 }, scene);
     crystal.position = new BABYLON.Vector3(cx2, y - 0.22, cz2);
     crystal.material = crystalMat;
   }
 
   const cl = new BABYLON.PointLight("lChandLight", new BABYLON.Vector3(x, y - 0.1, z), scene);
   cl.diffuse   = new BABYLON.Color3(0.80, 0.60, 1.0);
-  cl.intensity = 1.4;
-  cl.range     = 18;
+  cl.intensity = 2.5;
+  cl.range     = 22;
   torchLights.push(cl);
 }
 
