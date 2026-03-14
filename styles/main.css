@@ -67,6 +67,13 @@ body {
 #ui-overlay.active {
   display: flex;
   pointer-events: all;
+  touch-action: auto;
+}
+
+/* Hide nav hint when puzzle is open */
+#ui-overlay.active ~ #castle-nav-hint,
+body:has(#ui-overlay.active) #castle-nav-hint {
+  display: none;
 }
 
 /* Puzzle panel card */
@@ -80,7 +87,8 @@ body {
   text-align: center;
   box-shadow: 0 12px 40px rgba(0,0,0,0.35);
   animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  pointer-events: all;
+  pointer-events: auto;
+  touch-action: auto;
 }
 
 @keyframes popIn {
@@ -118,6 +126,8 @@ body {
   text-align: center;
   color: #2c3e50;
   outline: none;
+  touch-action: manipulation;
+  pointer-events: auto;
   transition: border-color 0.2s;
 }
 
@@ -134,6 +144,8 @@ body {
   border: none;
   border-radius: 16px;
   cursor: pointer;
+  touch-action: manipulation;
+  pointer-events: auto;
   transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
   box-shadow: 0 5px 0 rgba(0,0,0,0.18);
 }
@@ -338,7 +350,29 @@ body {
   100% { opacity: 0; }
 }
 
-/* ===== Virtual Joystick (mobile touch control) ===== */
+/* ===== Castle nav hint (bottom center, above joystick) ===== */
+#castle-nav-hint {
+  position: fixed;
+  bottom: 158px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.65);
+  color: #ffe066;
+  font-size: 1.1rem;
+  padding: 8px 22px;
+  border-radius: 20px;
+  z-index: 150;
+  pointer-events: none;
+  text-align: center;
+  animation: hintPulse 2s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.75; }
+  50%       { opacity: 1;    }
+}
+
+/* ===== Virtual Joystick (analog circle + knob) ===== */
 #joystick-base {
   position: fixed;
   bottom: 24px;
@@ -433,3 +467,15 @@ body {
 
 #hud-exit-btn:hover { background: #c0392b; transform: translateY(-2px); }
 #hud-exit-btn:active { transform: translateY(1px); }
+
+/* ===== Scrollable puzzle panel on small screens ===== */
+.puzzle-panel {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ===== Touch-friendly larger puzzle buttons on mobile ===== */
+@media (max-width: 600px) {
+  .btn { min-height: 72px; font-size: 1.4rem; }
+  .puzzle-panel { padding: 24px 16px; }
+}
