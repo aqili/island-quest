@@ -14,6 +14,7 @@ import { createPlayer }       from "../entities/Player.js";
 import { showPuzzle }             from "../puzzles/MathPuzzleUI.js";
 import { mathPuzzles }        from "../data/mathPuzzles.js";
 import { SaveManager }        from "../utils/SaveManager.js";
+import { createVirtualJoystick, destroyVirtualJoystick } from "../ui/VirtualJoystick.js";
 
 const BABYLON = window.BABYLON;
 
@@ -35,6 +36,9 @@ const ROOM_LENGTH = 18; // Z-offset between rooms
 export function createMathCastleScene(engine, onExit) {
   const scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color4(0.12, 0.08, 0.05, 1);
+
+  createVirtualJoystick();
+  scene.onDisposeObservable.addOnce(() => destroyVirtualJoystick());
 
   // Lighting
   const ambient = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);

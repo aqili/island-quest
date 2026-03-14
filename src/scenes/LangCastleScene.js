@@ -14,6 +14,7 @@ import { createPlayer }       from "../entities/Player.js";
 import { showPuzzle }             from "../puzzles/LangPuzzleUI.js";
 import { langPuzzles }        from "../data/langPuzzles.js";
 import { SaveManager }        from "../utils/SaveManager.js";
+import { createVirtualJoystick, destroyVirtualJoystick } from "../ui/VirtualJoystick.js";
 
 const BABYLON = window.BABYLON;
 
@@ -35,6 +36,9 @@ const ROOM_LENGTH = 18;
 export function createLangCastleScene(engine, onExit) {
   const scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color4(0.07, 0.04, 0.12, 1);
+
+  createVirtualJoystick();
+  scene.onDisposeObservable.addOnce(() => destroyVirtualJoystick());
 
   const ambient = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
   ambient.intensity = 0.9;

@@ -15,6 +15,14 @@ A **3D browser-based educational adventure game** for kids aged **6–12**. Expl
 | **Mouse drag** | Rotate camera |
 | **Mouse wheel** | Zoom in / out |
 
+## 📱 Mobile Controls
+
+| Control | Action |
+|---|---|
+| **Virtual Joystick** (bottom-left) | Move player |
+| **Drag on screen** | Rotate camera |
+| **Pinch** | Zoom in / out |
+
 ### Goal
 1. Walk across the ocean to **Math Island** or **Language Island**
 2. Enter the castle and walk toward each door
@@ -104,7 +112,7 @@ island-quest/
     │   ├── MathCastleScene.js  # Math castle + 4 puzzle rooms
     │   └── LangCastleScene.js  # Language castle + 4 puzzle rooms
     ├── entities/
-    │   └── Player.js           # Player mesh + WASD movement + camera
+    │   └── Player.js           # Player mesh + WASD + joystick movement + camera
     ├── puzzles/
     │   ├── MathPuzzleUI.js     # Math puzzle overlay UI
     │   ├── LangPuzzleUI.js     # Language puzzle overlay UI
@@ -112,6 +120,8 @@ island-quest/
     ├── data/
     │   ├── mathPuzzles.js      # Math questions data
     │   └── langPuzzles.js      # Language questions data
+    ├── ui/
+    │   └── VirtualJoystick.js  # Mobile touch joystick
     └── utils/
         └── SaveManager.js      # localStorage save/load
 ```
