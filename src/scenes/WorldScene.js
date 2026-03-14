@@ -11,6 +11,7 @@
 
 import { createPlayer } from "../entities/Player.js";
 import { SaveManager }   from "../utils/SaveManager.js";
+import { createVirtualJoystick, destroyVirtualJoystick } from "../ui/VirtualJoystick.js";
 
 const BABYLON = window.BABYLON;
 
@@ -23,6 +24,9 @@ const BABYLON = window.BABYLON;
 export function createWorldScene(engine, onEnterMath, onEnterLang) {
   const scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color4(0.1, 0.42, 0.67, 1); // ocean sky blue
+
+  createVirtualJoystick();
+  scene.onDisposeObservable.addOnce(() => destroyVirtualJoystick());
 
   // Per-scene state (no module-level variables, so re-entering is clean)
   let lastNearIsland = null;

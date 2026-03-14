@@ -7,6 +7,8 @@
  *   createPlayer(scene) → { mesh, update() }
  */
 
+import { getJoystickInput } from "../ui/VirtualJoystick.js";
+
 /**
  * @param {BABYLON.Scene} scene
  * @returns {{ mesh: BABYLON.Mesh, update: Function, camera: BABYLON.ArcRotateCamera }}
@@ -80,6 +82,11 @@ export function createPlayer(scene) {
     if (keys["KeyS"] || keys["ArrowDown"])  dz = -1;
     if (keys["KeyA"] || keys["ArrowLeft"])  dx = -1;
     if (keys["KeyD"] || keys["ArrowRight"]) dx =  1;
+
+    // Merge virtual joystick input (keyboard takes priority when active)
+    const joystick = getJoystickInput();
+    if (dx === 0) dx =  joystick.x;
+    if (dz === 0) dz = -joystick.y; // joystick Y is inverted (up = forward)
 
     if (dx !== 0 || dz !== 0) {
       // Transform movement to world space based on camera yaw
