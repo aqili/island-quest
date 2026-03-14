@@ -72,18 +72,19 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   _buildLettersIsland(scene);
 
   // ── Animals ───────────────────────────────────────────────────────────────
+  // IDs must be unique across all animals; use explicit integer id
   const animals = [];
-  // Dogs on Math Island
-  animals.push(_buildDog(scene, -28, 0, -3,  1));
-  animals.push(_buildDog(scene, -32, 0,  3, -1));
+  // Dogs on Math Island (home x, home z, radius, id)
+  animals.push(_buildDog(scene, -28,  -3, 6, 0));
+  animals.push(_buildDog(scene, -32,   3, 6, 1));
   // Cats on Lang Island
-  animals.push(_buildCat(scene,  28, 0, -3,  1));
-  animals.push(_buildCat(scene,  32, 0,  3, -1));
-  // Dogs + cats near Letters Island
-  animals.push(_buildDog(scene,  -3, 0, -52,  1));
-  animals.push(_buildCat(scene,   3, 0, -52, -1));
-  animals.push(_buildDog(scene,  -4, 0, -58,  1));
-  animals.push(_buildCat(scene,   4, 0, -58, -1));
+  animals.push(_buildCat(scene,  28,  -3, 6, 2));
+  animals.push(_buildCat(scene,  32,   3, 6, 3));
+  // Dogs + cats near Letters Island (z≈-55 center)
+  animals.push(_buildDog(scene,  -3, -53, 5, 4));
+  animals.push(_buildCat(scene,   3, -53, 5, 5));
+  animals.push(_buildDog(scene,  -5, -58, 5, 6));
+  animals.push(_buildCat(scene,   5, -57, 5, 7));
 
   // ── Player ────────────────────────────────────────────────────────────────
   const player = createPlayer(scene);
@@ -123,8 +124,8 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
         c.position.x += Math.sin(cloudT + i) * 0.005;
       });
 
-      // Update animals
-      animals.forEach(a => a.update());
+      // Update animals (isolated so errors never block door triggers)
+      animals.forEach(a => { try { a.update(); } catch(e) {} });
 
       const px = player.mesh.position;
 
@@ -142,11 +143,11 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
         if (lastNearIsland !== null) { lastNearIsland = null; hudLocation.textContent = "🌊 Open Ocean"; }
       }
 
-      if (!switching && BABYLON.Vector3.Distance(px, mathDoor) < 5) {
+      if (!switching && BABYLON.Vector3.Distance(px, mathDoor) < 8) {
         switching = true; setTimeout(() => onEnterMath(), 0);
-      } else if (!switching && BABYLON.Vector3.Distance(px, langDoor) < 5) {
+      } else if (!switching && BABYLON.Vector3.Distance(px, langDoor) < 8) {
         switching = true; setTimeout(() => onEnterLang(), 0);
-      } else if (!switching && onEnterLetters && BABYLON.Vector3.Distance(px, lettersDoor) < 5) {
+      } else if (!switching && onEnterLetters && BABYLON.Vector3.Distance(px, lettersDoor) < 8) {
         switching = true; setTimeout(() => onEnterLetters(), 0);
       }
 
@@ -620,15 +621,17 @@ function _buildLetterDecoration(scene, x, z, letter) {
 }
 
 // ── Dog ───────────────────────────────────────────────────────────────────────
-function _buildDog(scene, x, z, patrolMinZ, dirSign) {
-  const bodyMat = new BABYLON.StandardMaterial("dogBody_" + x + z, scene);
+// homeX, homeZ = center of wander area; wanderR = max radius; id = unique int
+function _buildDog(scene, homeX, homeZ, wanderR, id) {
+  const N = "d" + id;
+  const bodyMat = new BABYLON.StandardMaterial("dogMat" + N, scene);
   bodyMat.diffuseColor = new BABYLON.Color3(0.72, 0.52, 0.28);
 
-  const root = new BABYLON.TransformNode("dogRoot_" + x + z, scene);
-  root.position = new BABYLON.Vector3(x, 0, z);
+  const root = new BABYLON.TransformNode("dogRoot" + N, scene);
+  root.position = new BABYLON.Vector3(homeX, 0, homeZ);
 
-  function part(name, w, h, d, px, py, pz) {
-    const m = BABYLON.MeshBuilder.CreateBox(name + "_" + x + z,
+  function part(tag, w, h, d, px, py, pz) {
+    const m = BABYLON.MeshBuilder.CreateBox(tag + N,
       { width: w, height: h, depth: d }, scene);
     m.material = bodyMat;
     m.parent   = root;
@@ -636,60 +639,68 @@ function _buildDog(scene, x, z, patrolMinZ, dirSign) {
     return m;
   }
 
-  // Body
-  part("dogB", 0.55, 0.35, 0.90, 0, 0.38, 0);
-  // Head
-  const head = part("dogH", 0.38, 0.32, 0.38, 0, 0.62, 0.40);
-  // Snout
-  part("dogSn", 0.22, 0.18, 0.22, 0, 0.55, 0.62);
-  // Ears
-  part("dogEL", 0.10, 0.20, 0.12, -0.18, 0.78, 0.38);
-  part("dogER", 0.10, 0.20, 0.12,  0.18, 0.78, 0.38);
-  // Tail pivot
-  const tailPivot = new BABYLON.TransformNode("dogTailPivot_" + x + z, scene);
+  part("dB",  0.55, 0.35, 0.90,  0,     0.38, 0);
+  part("dH",  0.38, 0.32, 0.38,  0,     0.62, 0.40);
+  part("dSn", 0.22, 0.18, 0.22,  0,     0.55, 0.62);
+  part("dEL", 0.10, 0.20, 0.12, -0.18,  0.78, 0.38);
+  part("dER", 0.10, 0.20, 0.12,  0.18,  0.78, 0.38);
+
+  const tailPivot = new BABYLON.TransformNode("dTP" + N, scene);
   tailPivot.parent   = root;
   tailPivot.position = new BABYLON.Vector3(0, 0.55, -0.45);
-  const tail = part("dogTail", 0.10, 0.35, 0.10, 0, 0.18, 0);
-  tail.parent   = tailPivot;
-  tail.position = new BABYLON.Vector3(0, 0.18, 0);
+  const tailMesh = BABYLON.MeshBuilder.CreateBox("dTl" + N,
+    { width: 0.10, height: 0.35, depth: 0.10 }, scene);
+  tailMesh.material = bodyMat;
+  tailMesh.parent   = tailPivot;
+  tailMesh.position = new BABYLON.Vector3(0, 0.18, 0);
 
-  // Leg pivots (4 legs)
-  const legPivots = [
-    { pivot: null, ox: -0.18, oz:  0.28 },
-    { pivot: null, ox:  0.18, oz:  0.28 },
-    { pivot: null, ox: -0.18, oz: -0.28 },
-    { pivot: null, ox:  0.18, oz: -0.28 },
-  ];
-  legPivots.forEach((lp, i) => {
-    const pivot = new BABYLON.TransformNode("dogLegP_" + i + "_" + x + z, scene);
-    pivot.parent   = root;
-    pivot.position = new BABYLON.Vector3(lp.ox, 0.30, lp.oz);
-    const leg = part("dogLeg" + i, 0.12, 0.30, 0.12, 0, -0.15, 0);
-    leg.parent   = pivot;
+  const legOffsets = [[-0.18,0.28],[0.18,0.28],[-0.18,-0.28],[0.18,-0.28]];
+  const legPivots = legOffsets.map(([ox, oz], i) => {
+    const piv = new BABYLON.TransformNode("dLP" + i + N, scene);
+    piv.parent   = root;
+    piv.position = new BABYLON.Vector3(ox, 0.30, oz);
+    const leg = BABYLON.MeshBuilder.CreateBox("dLg" + i + N,
+      { width: 0.12, height: 0.30, depth: 0.12 }, scene);
+    leg.material = bodyMat;
+    leg.parent   = piv;
     leg.position = new BABYLON.Vector3(0, -0.15, 0);
-    lp.pivot = pivot;
+    return piv;
   });
 
-  let walkT   = Math.random() * Math.PI * 2;
-  let patrolZ = z;
-  const PATROL_RANGE = 5;
-  const SPEED = 0.03;
+  let walkT  = Math.random() * Math.PI * 2;
+  let curX   = homeX, curZ = homeZ;
+  let angle  = Math.random() * Math.PI * 2;
+  let timer  = Math.floor(Math.random() * 60);
+  const SPD  = 0.028;
 
   return {
     update() {
       try {
-        walkT   += 0.08;
-        patrolZ += dirSign * SPEED;
-        if (Math.abs(patrolZ - z) > PATROL_RANGE) dirSign *= -1;
-
-        root.position.z = patrolZ;
-        root.rotation.y = dirSign > 0 ? 0 : Math.PI;
+        walkT += 0.08;
+        timer++;
+        // Randomly change direction every 60-120 frames
+        if (timer > 60 + Math.random() * 60) {
+          angle += (Math.random() - 0.5) * Math.PI * 1.2;
+          timer = 0;
+        }
+        const nx = curX + Math.cos(angle) * SPD;
+        const nz = curZ + Math.sin(angle) * SPD;
+        const distHome = Math.sqrt((nx - homeX) ** 2 + (nz - homeZ) ** 2);
+        if (distHome > wanderR) {
+          // Steer back toward home
+          angle = Math.atan2(homeZ - curZ, homeX - curX) + (Math.random() - 0.5) * 0.5;
+        } else {
+          curX = nx; curZ = nz;
+        }
+        root.position.x = curX;
+        root.position.z = curZ;
+        root.rotation.y = -(angle - Math.PI / 2);
 
         const swing = Math.sin(walkT) * 0.5;
-        legPivots[0].pivot.rotation.x =  swing;
-        legPivots[1].pivot.rotation.x = -swing;
-        legPivots[2].pivot.rotation.x = -swing;
-        legPivots[3].pivot.rotation.x =  swing;
+        legPivots[0].rotation.x =  swing;
+        legPivots[1].rotation.x = -swing;
+        legPivots[2].rotation.x = -swing;
+        legPivots[3].rotation.x =  swing;
         tailPivot.rotation.z = Math.sin(walkT * 2) * 0.5;
       } catch(e) {}
     }
@@ -697,15 +708,16 @@ function _buildDog(scene, x, z, patrolMinZ, dirSign) {
 }
 
 // ── Cat ───────────────────────────────────────────────────────────────────────
-function _buildCat(scene, x, z, patrolMinZ, dirSign) {
-  const bodyMat = new BABYLON.StandardMaterial("catBody_" + x + z, scene);
+function _buildCat(scene, homeX, homeZ, wanderR, id) {
+  const N = "c" + id;
+  const bodyMat = new BABYLON.StandardMaterial("catMat" + N, scene);
   bodyMat.diffuseColor = new BABYLON.Color3(0.80, 0.75, 0.90); // grey-lavender
 
-  const root = new BABYLON.TransformNode("catRoot_" + x + z, scene);
-  root.position = new BABYLON.Vector3(x, 0, z);
+  const root = new BABYLON.TransformNode("catRoot" + N, scene);
+  root.position = new BABYLON.Vector3(homeX, 0, homeZ);
 
-  function part(name, w, h, d, px, py, pz) {
-    const m = BABYLON.MeshBuilder.CreateBox(name + "_c_" + x + z,
+  function part(tag, w, h, d, px, py, pz) {
+    const m = BABYLON.MeshBuilder.CreateBox(tag + N,
       { width: w, height: h, depth: d }, scene);
     m.material = bodyMat;
     m.parent   = root;
@@ -714,65 +726,77 @@ function _buildCat(scene, x, z, patrolMinZ, dirSign) {
   }
 
   // Body (slimmer than dog)
-  part("catB", 0.40, 0.28, 0.70, 0, 0.32, 0);
+  part("cB",  0.40, 0.28, 0.70,  0,     0.32, 0);
   // Head (rounder)
-  part("catH", 0.34, 0.34, 0.32, 0, 0.55, 0.28);
+  part("cH",  0.34, 0.34, 0.32,  0,     0.55, 0.28);
   // Pointy ears
-  const earMat = new BABYLON.StandardMaterial("catEarMat_" + x + z, scene);
+  const earMat = new BABYLON.StandardMaterial("cEarMat" + N, scene);
   earMat.diffuseColor = new BABYLON.Color3(0.95, 0.72, 0.80);
   for (const ex of [-0.14, 0.14]) {
-    const ear = BABYLON.MeshBuilder.CreateCylinder("catEar_" + ex + "_" + x + z,
+    const ear = BABYLON.MeshBuilder.CreateCylinder("cEar" + ex + N,
       { diameterTop: 0, diameterBottom: 0.12, height: 0.22, tessellation: 3 }, scene);
     ear.material = earMat;
     ear.parent   = root;
     ear.position = new BABYLON.Vector3(ex, 0.76, 0.28);
   }
-  // Tail pivot (curvy: single angled part)
-  const tailPivot = new BABYLON.TransformNode("catTailPivot_" + x + z, scene);
+  // Tail pivot
+  const tailPivot = new BABYLON.TransformNode("cTP" + N, scene);
   tailPivot.parent   = root;
   tailPivot.position = new BABYLON.Vector3(0, 0.40, -0.35);
-  const tail = part("catTail", 0.08, 0.45, 0.08, 0, 0.22, 0);
-  tail.parent   = tailPivot;
-  tail.position = new BABYLON.Vector3(0, 0.22, 0);
+  const tailMesh = BABYLON.MeshBuilder.CreateBox("cTl" + N,
+    { width: 0.08, height: 0.45, depth: 0.08 }, scene);
+  tailMesh.material = bodyMat;
+  tailMesh.parent   = tailPivot;
+  tailMesh.position = new BABYLON.Vector3(0, 0.22, 0);
   tailPivot.rotation.z = 0.5;
 
   // Legs
-  const legPivots = [
-    { pivot: null, ox: -0.14, oz:  0.22 },
-    { pivot: null, ox:  0.14, oz:  0.22 },
-    { pivot: null, ox: -0.14, oz: -0.22 },
-    { pivot: null, ox:  0.14, oz: -0.22 },
-  ];
-  legPivots.forEach((lp, i) => {
-    const pivot = new BABYLON.TransformNode("catLegP_" + i + "_" + x + z, scene);
-    pivot.parent   = root;
-    pivot.position = new BABYLON.Vector3(lp.ox, 0.22, lp.oz);
-    const leg = part("catLeg" + i, 0.09, 0.24, 0.09, 0, -0.12, 0);
-    leg.parent   = pivot;
+  const legOffsets = [[-0.14,0.22],[0.14,0.22],[-0.14,-0.22],[0.14,-0.22]];
+  const legPivots = legOffsets.map(([ox, oz], i) => {
+    const piv = new BABYLON.TransformNode("cLP" + i + N, scene);
+    piv.parent   = root;
+    piv.position = new BABYLON.Vector3(ox, 0.22, oz);
+    const leg = BABYLON.MeshBuilder.CreateBox("cLg" + i + N,
+      { width: 0.09, height: 0.24, depth: 0.09 }, scene);
+    leg.material = bodyMat;
+    leg.parent   = piv;
     leg.position = new BABYLON.Vector3(0, -0.12, 0);
-    lp.pivot = pivot;
+    return piv;
   });
 
   let walkT = Math.random() * Math.PI * 2;
-  let patrolZ = z;
-  const PATROL_RANGE = 4;
-  const SPEED = 0.025;
+  let curX  = homeX, curZ = homeZ;
+  let angle = Math.random() * Math.PI * 2;
+  let timer = Math.floor(Math.random() * 60);
+  const SPD = 0.022;
 
   return {
     update() {
       try {
-        walkT   += 0.07;
-        patrolZ += dirSign * SPEED;
-        if (Math.abs(patrolZ - z) > PATROL_RANGE) dirSign *= -1;
-
-        root.position.z = patrolZ;
-        root.rotation.y = dirSign > 0 ? 0 : Math.PI;
+        walkT += 0.07;
+        timer++;
+        // Randomly change direction every 70-130 frames
+        if (timer > 70 + Math.random() * 60) {
+          angle += (Math.random() - 0.5) * Math.PI * 1.4;
+          timer = 0;
+        }
+        const nx = curX + Math.cos(angle) * SPD;
+        const nz = curZ + Math.sin(angle) * SPD;
+        const distHome = Math.sqrt((nx - homeX) ** 2 + (nz - homeZ) ** 2);
+        if (distHome > wanderR) {
+          angle = Math.atan2(homeZ - curZ, homeX - curX) + (Math.random() - 0.5) * 0.5;
+        } else {
+          curX = nx; curZ = nz;
+        }
+        root.position.x = curX;
+        root.position.z = curZ;
+        root.rotation.y = -(angle - Math.PI / 2);
 
         const swing = Math.sin(walkT) * 0.45;
-        legPivots[0].pivot.rotation.x =  swing;
-        legPivots[1].pivot.rotation.x = -swing;
-        legPivots[2].pivot.rotation.x = -swing;
-        legPivots[3].pivot.rotation.x =  swing;
+        legPivots[0].rotation.x =  swing;
+        legPivots[1].rotation.x = -swing;
+        legPivots[2].rotation.x = -swing;
+        legPivots[3].rotation.x =  swing;
         tailPivot.rotation.z = 0.5 + Math.sin(walkT * 1.5) * 0.4;
       } catch(e) {}
     }
