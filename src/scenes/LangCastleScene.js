@@ -55,6 +55,23 @@ export function createLangCastleScene(engine, onExit) {
   const hudStars    = document.getElementById("hud-stars");
   _updateHUD(hudLocation, hudStars, 0);
 
+  // Show exit button
+  const hudExit    = document.getElementById("hud-exit");
+  const hudExitBtn = document.getElementById("hud-exit-btn");
+  hudExit.style.display = "";
+
+  function doExit() {
+    hudExit.style.display = "none";
+    switching = true;
+    setTimeout(() => onExit(), 0);
+  }
+  hudExitBtn.addEventListener("click", doExit);
+
+  scene.onDisposeObservable.addOnce(() => {
+    hudExit.style.display = "none";
+    hudExitBtn.removeEventListener("click", doExit);
+  });
+
   let puzzleActive = false;
   let switching    = false;
   let currentRoom  = 0;
@@ -74,8 +91,7 @@ export function createLangCastleScene(engine, onExit) {
 
     // Exit trigger
     if (pz < -2 && roomIdx === 0) {
-      switching = true;
-      setTimeout(() => onExit(), 0);
+      doExit();
       return;
     }
 

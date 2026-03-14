@@ -59,6 +59,23 @@ export function createMathCastleScene(engine, onExit) {
   const hudStars    = document.getElementById("hud-stars");
   _updateHUD(hudLocation, hudStars, 0);
 
+  // Show exit button
+  const hudExit    = document.getElementById("hud-exit");
+  const hudExitBtn = document.getElementById("hud-exit-btn");
+  hudExit.style.display = "";
+
+  function doExit() {
+    hudExit.style.display = "none";
+    switching = true;
+    setTimeout(() => onExit(), 0);
+  }
+  hudExitBtn.addEventListener("click", doExit);
+
+  scene.onDisposeObservable.addOnce(() => {
+    hudExit.style.display = "none";
+    hudExitBtn.removeEventListener("click", doExit);
+  });
+
   // Puzzle in-progress flag (prevent re-triggering)
   let puzzleActive = false;
   let switching    = false; // prevent double scene-switch
@@ -80,8 +97,7 @@ export function createMathCastleScene(engine, onExit) {
 
     // Exit trigger at back wall of Room 0
     if (pz < -2 && roomIdx === 0) {
-      switching = true;
-      setTimeout(() => onExit(), 0);
+      doExit();
       return;
     }
 
