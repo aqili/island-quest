@@ -91,7 +91,7 @@ function _buildLoadingScreen() {
   div.id = "loading-screen";
   div.innerHTML = `
     <p class="logo">🏝️ Island Quest</p>
-    <p class="subtitle">Loading your adventure… please wait!</p>
+    <p class="subtitle">Loading your adventure… Use WASD or the on-screen arrows to move!</p>
   `;
   return div;
 }
