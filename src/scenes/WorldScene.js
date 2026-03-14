@@ -110,9 +110,10 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   let cloudT = 0;
 
   // ── Proximity / triggers ──────────────────────────────────────────────────
-  const mathDoor    = new BABYLON.Vector3(-30, 0.5,   4.5);
-  const langDoor    = new BABYLON.Vector3( 30, 0.5,   4.5);
-  const lettersDoor = new BABYLON.Vector3(  0, 0.5, -50.5);
+  // Trigger on island CENTER so any approach direction works (radius 10 = inside grass)
+  const mathCenter    = new BABYLON.Vector3(-30, 0, 0);
+  const langCenter    = new BABYLON.Vector3( 30, 0, 0);
+  const lettersCenter = new BABYLON.Vector3(  0, 0, -55);
 
   scene.registerBeforeRender(() => {
     try {
@@ -143,11 +144,19 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
         if (lastNearIsland !== null) { lastNearIsland = null; hudLocation.textContent = "🌊 Open Ocean"; }
       }
 
-      if (!switching && BABYLON.Vector3.Distance(px, mathDoor) < 8) {
+      // 2D horizontal distance only (ignore y) so slope/height never blocks entry
+      const pdx2 = px.x - mathCenter.x,    pdz2 = px.z - mathCenter.z;
+      const ldx2 = px.x - langCenter.x,    ldz2 = px.z - langCenter.z;
+      const letdx = px.x - lettersCenter.x, letdz = px.z - lettersCenter.z;
+      const distM2 = Math.sqrt(pdx2*pdx2 + pdz2*pdz2);
+      const distL2 = Math.sqrt(ldx2*ldx2 + ldz2*ldz2);
+      const distLet = Math.sqrt(letdx*letdx + letdz*letdz);
+
+      if (!switching && distM2 < 10) {
         switching = true; setTimeout(() => onEnterMath(), 0);
-      } else if (!switching && BABYLON.Vector3.Distance(px, langDoor) < 8) {
+      } else if (!switching && distL2 < 10) {
         switching = true; setTimeout(() => onEnterLang(), 0);
-      } else if (!switching && onEnterLetters && BABYLON.Vector3.Distance(px, lettersDoor) < 8) {
+      } else if (!switching && onEnterLetters && distLet < 10) {
         switching = true; setTimeout(() => onEnterLetters(), 0);
       }
 
@@ -508,6 +517,7 @@ function _buildSign(scene, x, z, text, color) {
 
   const dt = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 128 }, scene);
   dt.drawText(text, null, 90, "bold 48px Fredoka One", "#2c3e50", "transparent", true);
+  dt.uScale = -1;   // fix horizontal mirror on box face
   boardMat.diffuseTexture = dt;
 }
 

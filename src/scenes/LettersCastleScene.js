@@ -227,6 +227,7 @@ export function createLettersCastleScene(engine, onExit) {
       ctx.font = "20px Arial";
       ctx.fillText("Return to the Assembly Box", 256, 144);
       dt.update();
+      dt.uScale = -1;
       const sm = new BABYLON.StandardMaterial(`sbm_${r}`, scene);
       sm.diffuseTexture  = dt;
       sm.emissiveTexture = dt;
@@ -314,6 +315,7 @@ export function createLettersCastleScene(engine, onExit) {
       ctx.font = "22px Arial";
       ctx.fillText("Approach when you have all 6 letters", 256, 90);
       dt.update();
+      dt.uScale = -1;
       const bm = new BABYLON.StandardMaterial("asmBoxMat", scene);
       bm.diffuseTexture  = dt;
       bm.emissiveTexture = dt;
@@ -358,6 +360,7 @@ export function createLettersCastleScene(engine, onExit) {
       ctx.font = "22px Arial";
       ctx.fillText(`Hint: ${HINT_TEXT}`, 256, 96);
       dt.update();
+      dt.uScale = -1;
       const sm = new BABYLON.StandardMaterial("entrSignMat", scene);
       sm.diffuseTexture  = dt;
       sm.emissiveTexture = dt;

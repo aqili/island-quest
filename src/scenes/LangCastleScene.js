@@ -384,6 +384,8 @@ function _buildPuzzleSign(scene, z, idx, accentColor) {
   ctx.fillText("Solve the puzzle to pass", boardSize / 2, 222);
   dt.update();
 
+  dt.uScale = -1;  // fix horizontal mirror on box face
+
   const boardMat = new BABYLON.StandardMaterial("lSignBoard_" + idx, scene);
   boardMat.diffuseTexture  = dt;
   boardMat.emissiveTexture = dt;

@@ -336,6 +336,31 @@ body {
   100% { opacity: 0; }
 }
 
+/* ===== Respawn button ===== */
+#btn-respawn {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.1rem;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.30);
+  white-space: nowrap;
+}
+
+#btn-respawn:hover {
+  background: rgba(255, 255, 255, 0.32);
+  transform: translateY(-2px);
+}
+
+#btn-respawn:active {
+  transform: translateY(1px);
+}
+
 /* ===== Virtual Joystick ===== */
 #joy-wrap {
   position: fixed;

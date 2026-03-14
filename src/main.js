@@ -77,6 +77,15 @@ function goToLettersCastle() {
   );
 }
 
+// ── Respawn button ────────────────────────────────────────────────────────────
+// Always visible in HUD; returns to world map at starting position
+document.getElementById("btn-respawn").addEventListener("click", () => {
+  // Clear any open puzzle overlay
+  const overlay = document.getElementById("ui-overlay");
+  if (overlay) { overlay.innerHTML = ""; overlay.classList.remove("active"); }
+  goToWorld();
+});
+
 // ── Boot ─────────────────────────────────────────────────────────────────────
 
 // Ensure save data exists
