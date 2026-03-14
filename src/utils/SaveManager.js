@@ -8,7 +8,8 @@ const SAVE_KEY = "islandQuestSave";
 
 const DEFAULT_SAVE = {
   mathIsland:     { roomsCompleted: [false, false, false, false], crownEarned: false },
-  languageIsland: { roomsCompleted: [false, false, false, false], crownEarned: false }
+  languageIsland: { roomsCompleted: [false, false, false, false], crownEarned: false },
+  lettersIsland:  { crownEarned: false }
 };
 
 export const SaveManager = {
@@ -17,7 +18,13 @@ export const SaveManager = {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SAVE));
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // Merge defaults for backward compatibility (new islands added later)
+      const merged = JSON.parse(JSON.stringify(DEFAULT_SAVE));
+      for (const key of Object.keys(parsed)) {
+        merged[key] = Object.assign(merged[key] || {}, parsed[key]);
+      }
+      return merged;
     } catch {
       return JSON.parse(JSON.stringify(DEFAULT_SAVE));
     }

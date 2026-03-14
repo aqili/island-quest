@@ -12,10 +12,11 @@
  *  4. Run the Babylon render loop
  */
 
-import { createWorldScene }     from "./scenes/WorldScene.js";
-import { createMathCastleScene } from "./scenes/MathCastleScene.js";
-import { createLangCastleScene } from "./scenes/LangCastleScene.js";
-import { SaveManager }           from "./utils/SaveManager.js";
+import { createWorldScene }        from "./scenes/WorldScene.js";
+import { createMathCastleScene }   from "./scenes/MathCastleScene.js";
+import { createLangCastleScene }   from "./scenes/LangCastleScene.js";
+import { createLettersCastleScene } from "./scenes/LettersCastleScene.js";
+import { SaveManager }             from "./utils/SaveManager.js";
 
 // ── Engine setup ──────────────────────────────────────────────────────────────
 const canvas = document.getElementById("renderCanvas");
@@ -51,8 +52,9 @@ function goToWorld() {
   switchScene(
     createWorldScene(
       engine,
-      () => goToMathCastle(),   // onEnterMath
-      () => goToLangCastle()    // onEnterLang
+      () => goToMathCastle(),      // onEnterMath
+      () => goToLangCastle(),      // onEnterLang
+      () => goToLettersCastle()    // onEnterLetters
     )
   );
 }
@@ -66,6 +68,12 @@ function goToMathCastle() {
 function goToLangCastle() {
   switchScene(
     createLangCastleScene(engine, () => goToWorld())
+  );
+}
+
+function goToLettersCastle() {
+  switchScene(
+    createLettersCastleScene(engine, () => goToWorld())
   );
 }
 

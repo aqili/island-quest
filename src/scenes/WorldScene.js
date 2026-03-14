@@ -9,7 +9,7 @@ import { SaveManager }   from "../utils/SaveManager.js";
 
 const BABYLON = window.BABYLON;
 
-export function createWorldScene(engine, onEnterMath, onEnterLang) {
+export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetters) {
   const scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color4(0.38, 0.68, 0.95, 1);
 
@@ -53,12 +53,14 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
 
   // ── Foam ring around each island ─────────────────────────────────────────
   _buildFoamRing(scene, -30, 0, 13.5);
-  _buildFoamRing(scene, 30, 0, 13.5);
+  _buildFoamRing(scene,  30, 0, 13.5);
+  _buildFoamRing(scene,   0, -55, 13.5);
 
   // ── Clouds ───────────────────────────────────────────────────────────────
   const cloudPositions = [
     [0, 28, -20], [-25, 24, -35], [20, 30, -10],
-    [-15, 26, 15], [35, 22, 5], [-40, 27, -5], [10, 29, 30]
+    [-15, 26, 15], [35, 22, 5], [-40, 27, -5], [10, 29, 30],
+    [0, 26, -65], [-18, 28, -50], [18, 25, -50]
   ];
   cloudPositions.forEach(([cx, cy, cz], i) => {
     _buildCloud(scene, cx, cy, cz, i);
@@ -67,6 +69,21 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
   // ── Islands ───────────────────────────────────────────────────────────────
   _buildMathIsland(scene);
   _buildLangIsland(scene);
+  _buildLettersIsland(scene);
+
+  // ── Animals ───────────────────────────────────────────────────────────────
+  const animals = [];
+  // Dogs on Math Island
+  animals.push(_buildDog(scene, -28, 0, -3,  1));
+  animals.push(_buildDog(scene, -32, 0,  3, -1));
+  // Cats on Lang Island
+  animals.push(_buildCat(scene,  28, 0, -3,  1));
+  animals.push(_buildCat(scene,  32, 0,  3, -1));
+  // Dogs + cats near Letters Island
+  animals.push(_buildDog(scene,  -3, 0, -52,  1));
+  animals.push(_buildCat(scene,   3, 0, -52, -1));
+  animals.push(_buildDog(scene,  -4, 0, -58,  1));
+  animals.push(_buildCat(scene,   4, 0, -58, -1));
 
   // ── Player ────────────────────────────────────────────────────────────────
   const player = createPlayer(scene);
@@ -80,7 +97,8 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
     const save = SaveManager.load();
     const crowns = [
       save.mathIsland.crownEarned     ? "👑🔢" : "",
-      save.languageIsland.crownEarned ? "👑🔤" : ""
+      save.languageIsland.crownEarned ? "👑🔤" : "",
+      (save.lettersIsland && save.lettersIsland.crownEarned) ? "👑🔤" : ""
     ].filter(Boolean).join("  ");
     hudCrowns.textContent = crowns;
   }
@@ -91,8 +109,9 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
   let cloudT = 0;
 
   // ── Proximity / triggers ──────────────────────────────────────────────────
-  const mathDoor = new BABYLON.Vector3(-30, 0.5, 4.5);
-  const langDoor = new BABYLON.Vector3( 30, 0.5, 4.5);
+  const mathDoor    = new BABYLON.Vector3(-30, 0.5,   4.5);
+  const langDoor    = new BABYLON.Vector3( 30, 0.5,   4.5);
+  const lettersDoor = new BABYLON.Vector3(  0, 0.5, -50.5);
 
   scene.registerBeforeRender(() => {
     try {
@@ -104,15 +123,21 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
         c.position.x += Math.sin(cloudT + i) * 0.005;
       });
 
+      // Update animals
+      animals.forEach(a => a.update());
+
       const px = player.mesh.position;
 
-      const distMath = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-30, px.y, 0));
-      const distLang = BABYLON.Vector3.Distance(px, new BABYLON.Vector3( 30, px.y, 0));
+      const distMath    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-30, px.y,   0));
+      const distLang    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3( 30, px.y,   0));
+      const distLetters = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(  0, px.y, -55));
 
       if (distMath < 15) {
-        if (lastNearIsland !== "math") { lastNearIsland = "math"; hudLocation.textContent = "🔢 Math Island"; }
+        if (lastNearIsland !== "math")    { lastNearIsland = "math";    hudLocation.textContent = "🔢 Math Island"; }
       } else if (distLang < 15) {
-        if (lastNearIsland !== "lang") { lastNearIsland = "lang"; hudLocation.textContent = "🔤 Language Island"; }
+        if (lastNearIsland !== "lang")    { lastNearIsland = "lang";    hudLocation.textContent = "🔤 Language Island"; }
+      } else if (distLetters < 15) {
+        if (lastNearIsland !== "letters") { lastNearIsland = "letters"; hudLocation.textContent = "🔤 Letters Island"; }
       } else {
         if (lastNearIsland !== null) { lastNearIsland = null; hudLocation.textContent = "🌊 Open Ocean"; }
       }
@@ -121,6 +146,8 @@ export function createWorldScene(engine, onEnterMath, onEnterLang) {
         switching = true; setTimeout(() => onEnterMath(), 0);
       } else if (!switching && BABYLON.Vector3.Distance(px, langDoor) < 5) {
         switching = true; setTimeout(() => onEnterLang(), 0);
+      } else if (!switching && onEnterLetters && BABYLON.Vector3.Distance(px, lettersDoor) < 5) {
+        switching = true; setTimeout(() => onEnterLetters(), 0);
       }
 
       updateHUD();
@@ -481,4 +508,273 @@ function _buildSign(scene, x, z, text, color) {
   const dt = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 128 }, scene);
   dt.drawText(text, null, 90, "bold 48px Fredoka One", "#2c3e50", "transparent", true);
   boardMat.diffuseTexture = dt;
+}
+
+// ── Letters Island ────────────────────────────────────────────────────────────
+function _buildLettersIsland(scene) {
+  const OX = 0, OZ = -55;
+
+  _buildIslandGround(scene, OX, OZ, "letters",
+    new BABYLON.Color3(0.82, 0.90, 0.88),  // light seafoam sand
+    new BABYLON.Color3(0.10, 0.68, 0.60)   // teal grass
+  );
+
+  _buildRocks(scene, OX, OZ, new BABYLON.Color3(0.38, 0.55, 0.52), 8);
+
+  // Teal castle
+  _buildCastle(scene, OX, OZ,
+    new BABYLON.Color3(0.45, 0.72, 0.68),  // teal stone
+    new BABYLON.Color3(0.28, 0.52, 0.50),
+    new BABYLON.Color3(0.08, 0.45, 0.40)   // dark teal roofs
+  );
+
+  _buildFlag(scene, OX, OZ, new BABYLON.Color3(0.20, 0.95, 0.80), "🔤");
+  _buildSign(scene, OX, OZ + 7.5, "Letters Island 🔤", new BABYLON.Color3(0.20, 0.90, 0.78));
+
+  const treePositions = [[-4,-5],[4,-5],[-6,2],[6,2],[0,-8],[-5,0],[5,0]];
+  treePositions.forEach(([tx, tz]) => {
+    _buildPalmTree(scene, OX + tx, OZ + tz, new BABYLON.Color3(0.08, 0.65, 0.55));
+  });
+
+  _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(0.40, 1.0, 0.85));
+  _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(0.40, 1.0, 0.85));
+
+  // Two houses on the island
+  _buildHouse(scene, OX - 6, OZ - 2, new BABYLON.Color3(0.90, 0.85, 0.70), new BABYLON.Color3(0.65, 0.20, 0.10));
+  _buildHouse(scene, OX + 6, OZ - 2, new BABYLON.Color3(0.80, 0.90, 0.78), new BABYLON.Color3(0.20, 0.55, 0.30));
+
+  // Letter tiles scattered as decoration around island
+  _buildLetterDecoration(scene, OX - 2, OZ + 5, "A");
+  _buildLetterDecoration(scene, OX + 2, OZ + 5, "B");
+  _buildLetterDecoration(scene, OX,     OZ + 6, "C");
+}
+
+function _buildHouse(scene, x, z, wallColor, roofColor) {
+  const wallMat = new BABYLON.StandardMaterial("houseMat_" + x + z, scene);
+  wallMat.diffuseColor = wallColor;
+
+  const roofMat = new BABYLON.StandardMaterial("roofMat_h_" + x + z, scene);
+  roofMat.diffuseColor = roofColor;
+
+  const doorMat = new BABYLON.StandardMaterial("doorMat_h_" + x + z, scene);
+  doorMat.diffuseColor = new BABYLON.Color3(0.25, 0.14, 0.05);
+
+  const winMat = new BABYLON.StandardMaterial("winMat_h_" + x + z, scene);
+  winMat.diffuseColor  = new BABYLON.Color3(0.60, 0.82, 0.95);
+  winMat.emissiveColor = new BABYLON.Color3(0.10, 0.18, 0.28);
+
+  // Body
+  const body = BABYLON.MeshBuilder.CreateBox("houseBody_" + x + z,
+    { width: 2.4, height: 2.0, depth: 2.0 }, scene);
+  body.position = new BABYLON.Vector3(x, 1.0, z);
+  body.material = wallMat;
+
+  // Pyramid roof
+  const roof = BABYLON.MeshBuilder.CreateCylinder("houseRoof_" + x + z,
+    { diameterTop: 0, diameterBottom: 3.0, height: 1.4, tessellation: 4 }, scene);
+  roof.position = new BABYLON.Vector3(x, 2.7, z);
+  roof.rotation.y = Math.PI / 4;
+  roof.material = roofMat;
+
+  // Door
+  const door = BABYLON.MeshBuilder.CreateBox("houseDoor_" + x + z,
+    { width: 0.45, height: 0.80, depth: 0.12 }, scene);
+  door.position = new BABYLON.Vector3(x, 0.40, z + 1.06);
+  door.material = doorMat;
+
+  // Two windows
+  for (const wx of [-0.65, 0.65]) {
+    const win = BABYLON.MeshBuilder.CreateBox("houseWin_" + x + z + wx,
+      { width: 0.38, height: 0.38, depth: 0.10 }, scene);
+    win.position = new BABYLON.Vector3(x + wx, 1.2, z + 1.06);
+    win.material = winMat;
+  }
+}
+
+function _buildLetterDecoration(scene, x, z, letter) {
+  const board = BABYLON.MeshBuilder.CreateBox("letterDec_" + x + z,
+    { width: 0.7, height: 0.7, depth: 0.10 }, scene);
+  board.position = new BABYLON.Vector3(x, 1.2, z);
+  board.rotation.y = Math.random() * Math.PI;
+
+  try {
+    const dt = new BABYLON.DynamicTexture("letterDecTex_" + x + z, { width: 64, height: 64 }, scene, false);
+    const ctx = dt.getContext();
+    ctx.fillStyle = "#0d2a28";
+    ctx.fillRect(0, 0, 64, 64);
+    ctx.fillStyle = "#40ffdd";
+    ctx.font = "bold 44px Arial";
+    ctx.textAlign    = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(letter, 32, 34);
+    dt.update();
+    const m = new BABYLON.StandardMaterial("ldm_" + x + z, scene);
+    m.diffuseTexture  = dt;
+    m.emissiveTexture = dt;
+    board.material = m;
+  } catch(e) {
+    const m = new BABYLON.StandardMaterial("ldm_" + x + z, scene);
+    m.diffuseColor = new BABYLON.Color3(0.1, 0.7, 0.6);
+    board.material = m;
+  }
+}
+
+// ── Dog ───────────────────────────────────────────────────────────────────────
+function _buildDog(scene, x, z, patrolMinZ, dirSign) {
+  const bodyMat = new BABYLON.StandardMaterial("dogBody_" + x + z, scene);
+  bodyMat.diffuseColor = new BABYLON.Color3(0.72, 0.52, 0.28);
+
+  const root = new BABYLON.TransformNode("dogRoot_" + x + z, scene);
+  root.position = new BABYLON.Vector3(x, 0, z);
+
+  function part(name, w, h, d, px, py, pz) {
+    const m = BABYLON.MeshBuilder.CreateBox(name + "_" + x + z,
+      { width: w, height: h, depth: d }, scene);
+    m.material = bodyMat;
+    m.parent   = root;
+    m.position = new BABYLON.Vector3(px, py, pz);
+    return m;
+  }
+
+  // Body
+  part("dogB", 0.55, 0.35, 0.90, 0, 0.38, 0);
+  // Head
+  const head = part("dogH", 0.38, 0.32, 0.38, 0, 0.62, 0.40);
+  // Snout
+  part("dogSn", 0.22, 0.18, 0.22, 0, 0.55, 0.62);
+  // Ears
+  part("dogEL", 0.10, 0.20, 0.12, -0.18, 0.78, 0.38);
+  part("dogER", 0.10, 0.20, 0.12,  0.18, 0.78, 0.38);
+  // Tail pivot
+  const tailPivot = new BABYLON.TransformNode("dogTailPivot_" + x + z, scene);
+  tailPivot.parent   = root;
+  tailPivot.position = new BABYLON.Vector3(0, 0.55, -0.45);
+  const tail = part("dogTail", 0.10, 0.35, 0.10, 0, 0.18, 0);
+  tail.parent   = tailPivot;
+  tail.position = new BABYLON.Vector3(0, 0.18, 0);
+
+  // Leg pivots (4 legs)
+  const legPivots = [
+    { pivot: null, ox: -0.18, oz:  0.28 },
+    { pivot: null, ox:  0.18, oz:  0.28 },
+    { pivot: null, ox: -0.18, oz: -0.28 },
+    { pivot: null, ox:  0.18, oz: -0.28 },
+  ];
+  legPivots.forEach((lp, i) => {
+    const pivot = new BABYLON.TransformNode("dogLegP_" + i + "_" + x + z, scene);
+    pivot.parent   = root;
+    pivot.position = new BABYLON.Vector3(lp.ox, 0.30, lp.oz);
+    const leg = part("dogLeg" + i, 0.12, 0.30, 0.12, 0, -0.15, 0);
+    leg.parent   = pivot;
+    leg.position = new BABYLON.Vector3(0, -0.15, 0);
+    lp.pivot = pivot;
+  });
+
+  let walkT   = Math.random() * Math.PI * 2;
+  let patrolZ = z;
+  const PATROL_RANGE = 5;
+  const SPEED = 0.03;
+
+  return {
+    update() {
+      try {
+        walkT   += 0.08;
+        patrolZ += dirSign * SPEED;
+        if (Math.abs(patrolZ - z) > PATROL_RANGE) dirSign *= -1;
+
+        root.position.z = patrolZ;
+        root.rotation.y = dirSign > 0 ? 0 : Math.PI;
+
+        const swing = Math.sin(walkT) * 0.5;
+        legPivots[0].pivot.rotation.x =  swing;
+        legPivots[1].pivot.rotation.x = -swing;
+        legPivots[2].pivot.rotation.x = -swing;
+        legPivots[3].pivot.rotation.x =  swing;
+        tailPivot.rotation.z = Math.sin(walkT * 2) * 0.5;
+      } catch(e) {}
+    }
+  };
+}
+
+// ── Cat ───────────────────────────────────────────────────────────────────────
+function _buildCat(scene, x, z, patrolMinZ, dirSign) {
+  const bodyMat = new BABYLON.StandardMaterial("catBody_" + x + z, scene);
+  bodyMat.diffuseColor = new BABYLON.Color3(0.80, 0.75, 0.90); // grey-lavender
+
+  const root = new BABYLON.TransformNode("catRoot_" + x + z, scene);
+  root.position = new BABYLON.Vector3(x, 0, z);
+
+  function part(name, w, h, d, px, py, pz) {
+    const m = BABYLON.MeshBuilder.CreateBox(name + "_c_" + x + z,
+      { width: w, height: h, depth: d }, scene);
+    m.material = bodyMat;
+    m.parent   = root;
+    m.position = new BABYLON.Vector3(px, py, pz);
+    return m;
+  }
+
+  // Body (slimmer than dog)
+  part("catB", 0.40, 0.28, 0.70, 0, 0.32, 0);
+  // Head (rounder)
+  part("catH", 0.34, 0.34, 0.32, 0, 0.55, 0.28);
+  // Pointy ears
+  const earMat = new BABYLON.StandardMaterial("catEarMat_" + x + z, scene);
+  earMat.diffuseColor = new BABYLON.Color3(0.95, 0.72, 0.80);
+  for (const ex of [-0.14, 0.14]) {
+    const ear = BABYLON.MeshBuilder.CreateCylinder("catEar_" + ex + "_" + x + z,
+      { diameterTop: 0, diameterBottom: 0.12, height: 0.22, tessellation: 3 }, scene);
+    ear.material = earMat;
+    ear.parent   = root;
+    ear.position = new BABYLON.Vector3(ex, 0.76, 0.28);
+  }
+  // Tail pivot (curvy: single angled part)
+  const tailPivot = new BABYLON.TransformNode("catTailPivot_" + x + z, scene);
+  tailPivot.parent   = root;
+  tailPivot.position = new BABYLON.Vector3(0, 0.40, -0.35);
+  const tail = part("catTail", 0.08, 0.45, 0.08, 0, 0.22, 0);
+  tail.parent   = tailPivot;
+  tail.position = new BABYLON.Vector3(0, 0.22, 0);
+  tailPivot.rotation.z = 0.5;
+
+  // Legs
+  const legPivots = [
+    { pivot: null, ox: -0.14, oz:  0.22 },
+    { pivot: null, ox:  0.14, oz:  0.22 },
+    { pivot: null, ox: -0.14, oz: -0.22 },
+    { pivot: null, ox:  0.14, oz: -0.22 },
+  ];
+  legPivots.forEach((lp, i) => {
+    const pivot = new BABYLON.TransformNode("catLegP_" + i + "_" + x + z, scene);
+    pivot.parent   = root;
+    pivot.position = new BABYLON.Vector3(lp.ox, 0.22, lp.oz);
+    const leg = part("catLeg" + i, 0.09, 0.24, 0.09, 0, -0.12, 0);
+    leg.parent   = pivot;
+    leg.position = new BABYLON.Vector3(0, -0.12, 0);
+    lp.pivot = pivot;
+  });
+
+  let walkT = Math.random() * Math.PI * 2;
+  let patrolZ = z;
+  const PATROL_RANGE = 4;
+  const SPEED = 0.025;
+
+  return {
+    update() {
+      try {
+        walkT   += 0.07;
+        patrolZ += dirSign * SPEED;
+        if (Math.abs(patrolZ - z) > PATROL_RANGE) dirSign *= -1;
+
+        root.position.z = patrolZ;
+        root.rotation.y = dirSign > 0 ? 0 : Math.PI;
+
+        const swing = Math.sin(walkT) * 0.45;
+        legPivots[0].pivot.rotation.x =  swing;
+        legPivots[1].pivot.rotation.x = -swing;
+        legPivots[2].pivot.rotation.x = -swing;
+        legPivots[3].pivot.rotation.x =  swing;
+        tailPivot.rotation.z = 0.5 + Math.sin(walkT * 1.5) * 0.4;
+      } catch(e) {}
+    }
+  };
 }
