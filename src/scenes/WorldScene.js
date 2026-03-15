@@ -394,12 +394,17 @@ function _buildCastle(scene, cx, cz, wallColor, towerColor, roofColor) {
     win.material = winMat;
   });
 
-  // Door gap (dark box inset in front)
-  const door = BABYLON.MeshBuilder.CreateBox("door_" + cx,
-    { width: 3.5, height: 5.5, depth: 0.5 }, scene);
-  door.position = new BABYLON.Vector3(cx, 2.75, cz + 5.1);
+  // Door materials
   const doorMat = new BABYLON.StandardMaterial("doorMat_" + cx, scene);
   doorMat.diffuseColor = new BABYLON.Color3(0.10, 0.06, 0.02);
+
+  // Door gap (dark recess behind the opening)
+  const doorGap = BABYLON.MeshBuilder.CreateBox("doorGap_" + cx,
+    { width: 3.5, height: 5.5, depth: 0.5 }, scene);
+  doorGap.position = new BABYLON.Vector3(cx, 2.75, cz + 5.1);
+  doorGap.material = doorMat;
+
+  // Door frame panel
   const door = BABYLON.MeshBuilder.CreateBox("door_" + cx,
     { width: 1.6, height: 2.4, depth: 0.35 }, scene);
   door.position = new BABYLON.Vector3(cx, 1.2, cz + 2.9);
