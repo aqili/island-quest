@@ -7,7 +7,8 @@
  *   createPlayer(scene) → { mesh, update() }
  */
 
-import { getJoystickInput } from "../ui/VirtualJoystick.js";
+import { createVirtualJoystick, destroyVirtualJoystick, getJoystickInput }
+  from "../ui/VirtualJoystick.js";
 
 /**
  * @param {BABYLON.Scene} scene
@@ -107,15 +108,12 @@ export function createPlayer(scene) {
   });
 
   // ── Camera ───────────────────────────────────────────────────────────────
-  // Target tracks player at chest height for a better 3rd-person view
-  const camTarget = new BABYLON.Vector3(0, 1.0, 0);
-
   const camera = new BABYLON.ArcRotateCamera(
     "playerCam",
     -Math.PI / 2,
-    Math.PI / 3.2,   // slightly more horizontal — shows more world ahead
+    Math.PI / 3.2,
     14,
-    camTarget,
+    root.position,
     scene
   );
   camera.lowerRadiusLimit = 6;
@@ -126,43 +124,54 @@ export function createPlayer(scene) {
 
   // ── Keyboard input ───────────────────────────────────────────────────────
   const keys = {};
-  const onKeyDown = e => { keys[e.code] = true; };
-  const onKeyUp   = e => { keys[e.code] = false; };
+  const onKeyDown = e => {
+    keys[e.code] = true;
+    if (e.code.startsWith("Arrow")) e.preventDefault();
+  };
+  const onKeyUp = e => { keys[e.code] = false; };
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup",   onKeyUp);
+
+  // Mount the on-screen joystick
+  createVirtualJoystick();
 
   scene.onDisposeObservable.addOnce(() => {
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup",   onKeyUp);
-    window.removeEventListener("touchmove", _joyMove);
-    window.removeEventListener("touchend",  _joyReset);
-    window.removeEventListener("touchcancel", _joyReset);
-    if (joyWrap.parentNode) joyWrap.parentNode.removeChild(joyWrap);
+    destroyVirtualJoystick();
   });
 
-  const SPEED = 0.25;
+  const SPEED   = 0.25;
+  const CAM_ROT = 0.035;
 
   // ── Update ───────────────────────────────────────────────────────────────
   function update() {
-    camera.target = root.position;
+    // Lock player on ground — never drift on Y
+    root.position.y = 0.5;
 
+    // Directly mutate camera.target's internal Vector3 so it follows the player
+    // at chest height. (ArcRotateCamera.setTarget clones, so a separate variable
+    // would be disconnected — we must mutate the _target the getter returns.)
+    camera.target.x = root.position.x;
+    camera.target.y = root.position.y + 0.9;
+    camera.target.z = root.position.z;
+
+    // Arrow keys orbit/tilt the camera (L/R flipped for natural feel)
+    if (keys["ArrowLeft"])  camera.alpha += CAM_ROT;
+    if (keys["ArrowRight"]) camera.alpha -= CAM_ROT;
+    if (keys["ArrowUp"])    camera.beta = Math.max(camera.lowerBetaLimit, camera.beta - 0.025);
+    if (keys["ArrowDown"])  camera.beta = Math.min(camera.upperBetaLimit, camera.beta + 0.025);
+
+    // Player movement — WASD + on-screen joystick only
     let dx = 0, dz = 0;
     if (keys["KeyW"]) dz =  1;
     if (keys["KeyS"]) dz = -1;
     if (keys["KeyA"]) dx = -1;
     if (keys["KeyD"]) dx =  1;
-    // Joystick overrides keyboard if touched
-    if (joy.dx !== 0 || joy.dz !== 0) {
-      dx = joy.dx;
-      dz = joy.dz;
-    }
 
-    const moving = dx !== 0 || dz !== 0;
-
-    // Merge virtual joystick input (keyboard takes priority when active)
-    const joystick = getJoystickInput();
-    if (dx === 0) dx =  joystick.x;
-    if (dz === 0) dz = -joystick.y; // joystick Y is inverted (up = forward)
+    const joy = getJoystickInput();
+    if (dx === 0) dx =  joy.x;
+    if (dz === 0) dz = -joy.y;  // joystick Y is inverted: up → forward
 
     if (dx !== 0 || dz !== 0) {
       // Transform movement to world space based on camera yaw
