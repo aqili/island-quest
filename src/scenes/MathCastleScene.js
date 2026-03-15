@@ -248,9 +248,13 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   // ── Ceiling ───────────────────────────────────────────────────────────
   box("ceil_" + idx, scene, ROOM_W + 0.8, 0.20, ROOM_L + 0.8, cx, ROOM_H + 0.10, ROOM_L / 2, ceilMat);
 
-  // ── Side walls ────────────────────────────────────────────────────────
-  box("lWall_" + idx, scene, 0.40, ROOM_H, ROOM_L, cx - HW - 0.20, wallMidY, ROOM_L / 2, stoneMat);
-  box("rWall_" + idx, scene, 0.40, ROOM_H, ROOM_L, cx + HW + 0.20, wallMidY, ROOM_L / 2, stoneMat);
+  // ── Side walls (with corridor openings) ───────────────────────────────
+  // Left wall: needs a gap where CONN[idx-1] connects (if idx>0)
+  // Right wall: needs a gap where CONN[idx] connects (if idx<3)
+  _buildSideWall(scene, "lWall_" + idx, cx - HW - 0.20, wallMidY, stoneMat,
+    idx > 0 ? CONN[idx - 1] : null);
+  _buildSideWall(scene, "rWall_" + idx, cx + HW + 0.20, wallMidY, stoneMat,
+    idx < 3 ? CONN[idx]     : null);
 
   // ── Entry side ────────────────────────────────────────────────────────
   if (idx === 0) {
@@ -552,10 +556,17 @@ function _buildDoorSign(scene, idx, cx, dz, accentColor) {
   boardMat.diffuseTexture  = bdt;
   boardMat.emissiveTexture = bdt;
   boardMat.emissiveColor   = new BABYLON.Color3(0.55, 0.45, 0.0);
-  boardMat.backFaceCulling = false;
+  boardMat.backFaceCulling = true;
 
+  // Sign placement: approach side of the door
+  // Even rooms (dz=ROOM_L): player comes from low-z → sign at dz-3.5, faces -z (rotation.y = π)
+  // Odd rooms  (dz=0):      player comes from high-z → sign at dz+3.5, faces +z (rotation.y = 0)
   const signZ = dz > ROOM_L / 2 ? dz - 3.5 : dz + 3.5;
-  box("signBrd_" + idx, scene, 4.2, 1.8, 0.12, cx, 3.2, signZ, boardMat);
+  const signBrd = BABYLON.MeshBuilder.CreatePlane("signBrd_" + idx,
+    { width: 4.2, height: 1.8, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+  signBrd.position.set(cx, 3.2, signZ);
+  signBrd.rotation.y = (dz > ROOM_L / 2) ? Math.PI : 0;
+  signBrd.material = boardMat;
 
   const stripMat = _mat(scene, "signSt_" + idx, accentColor, 0.42);
   box("signSt_"  + idx, scene, 4.4, 0.14, 0.14, cx, 4.12, signZ, stripMat);
@@ -780,4 +791,28 @@ function arch(name, scene, diamX, diamY, diamZ, x, y, z, mat) {
   m.position.set(x, y, z);
   if (mat) m.material = mat;
   return m;
+}
+
+// Build a side wall for a room, leaving a gap where a connector corridor attaches.
+// conn: the CONN entry for the corridor that connects through this wall, or null for a solid wall.
+function _buildSideWall(scene, name, wallX, wallMidY, mat, conn) {
+  if (!conn) {
+    // No corridor — solid wall
+    box(name, scene, 0.40, ROOM_H, ROOM_L, wallX, wallMidY, ROOM_L / 2, mat);
+    return;
+  }
+  // Gap spans the z-range where the corridor overlaps the room (clamped to 0..ROOM_L)
+  const gapZ0 = Math.max(0, conn.zMin);
+  const gapZ1 = Math.min(ROOM_L, conn.zMax);
+  // Segment A: z=0 .. gapZ0
+  if (gapZ0 > 0) {
+    box(name + "A", scene, 0.40, ROOM_H, gapZ0,
+      wallX, wallMidY, gapZ0 / 2, mat);
+  }
+  // Segment B: z=gapZ1 .. ROOM_L
+  if (gapZ1 < ROOM_L) {
+    const segLen = ROOM_L - gapZ1;
+    box(name + "B", scene, 0.40, ROOM_H, segLen,
+      wallX, wallMidY, gapZ1 + segLen / 2, mat);
+  }
 }
