@@ -26,9 +26,18 @@ export function createPlayer(scene) {
   let _avatar = {};
   try { _avatar = JSON.parse(localStorage.getItem("iq_avatar") || "{}"); } catch(e) {}
 
+  // If the selected character has a colour preset, use it — otherwise use avatar picker
+  const _preset = _charDef.preset;
+
   function _col(key, r, g, b) {
+    // 1. character preset wins first
+    if (_preset && _preset[key]) {
+      return new BABYLON.Color3(_preset[key][0], _preset[key][1], _preset[key][2]);
+    }
+    // 2. saved avatar colour
     const saved = _avatar[key];
     if (saved && saved.length === 3) return new BABYLON.Color3(saved[0], saved[1], saved[2]);
+    // 3. hardcoded default
     return new BABYLON.Color3(r, g, b);
   }
 

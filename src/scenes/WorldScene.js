@@ -7,7 +7,7 @@
 import { createPlayer } from "../entities/Player.js";
 import { SaveManager }   from "../utils/SaveManager.js";
 import { loadCharacterModel, playAnimation } from "../utils/loadCharacterModel.js";
-import { NPC_CHARACTERS } from "../data/characters.js";
+import { NPC_CHARACTERS, NPC_PRESETS } from "../data/characters.js";
 
 
 const BABYLON = window.BABYLON;
@@ -550,6 +550,11 @@ function _buildSign(scene, x, z, text, color) {
   const dt  = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 180 }, scene);
   const ctx = dt.getContext();
 
+  // Pre-flip canvas: signs face player from +Z, box +Z face is h+v flipped → cancel both
+  ctx.save();
+  ctx.translate(512, 180);
+  ctx.scale(-1, -1);
+
   // Background
   ctx.fillStyle = "#1a0e04";
   ctx.fillRect(0, 0, 512, 180);
@@ -573,6 +578,7 @@ function _buildSign(scene, x, z, text, color) {
   ctx.font = "28px Arial";
   ctx.fillText(subtitle, 256, 142);
 
+  ctx.restore();
   dt.update();
 
   const boardMat = new BABYLON.StandardMaterial("boardMat_" + x, scene);
@@ -1124,37 +1130,78 @@ function _buildCow(scene, homeX, homeZ, wanderR, id) {
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
-// DECORATIVE NPCs (Kenney GLB characters standing near castles)
+// DECORATIVE NPCs — fully procedural (no GLB needed)
 // ───────────────────────────────────────────────────────────────────────────────
 
-/**
- * NPC spawn points — one per island, rotated to face the castle entrance.
- * Characters cycle through NPC_CHARACTERS list.
- */
+/** Spawn points: one greeter NPC per island */
 const NPC_SPAWN_POINTS = [
-  { x: -30, z:  2, ry: Math.PI * 0.25,  label: "Math Island NPC"    },
-  { x:  30, z:  2, ry: Math.PI * 0.75,  label: "Language Island NPC" },
-  { x:   3, z: -53, ry: 0,              label: "Letters Island NPC"  },
-  { x:  -3, z:  52, ry: Math.PI,        label: "Numbers Island NPC"  },
+  { x: -25, z:   5,  ry: -Math.PI * 0.15,  preset: 0 },  // Math Island
+  { x:  25, z:   5,  ry:  Math.PI * 1.15,  preset: 1 },  // Language Island
+  { x:   5, z: -50,  ry:  Math.PI * 0.05,  preset: 2 },  // Letters Island
+  { x:  -5, z:  50,  ry: -Math.PI * 0.95,  preset: 3 },  // Numbers Island
 ];
 
 function _spawnNPCs(scene) {
   NPC_SPAWN_POINTS.forEach((pt, i) => {
-    const charDef = NPC_CHARACTERS[i % NPC_CHARACTERS.length];
-    if (!charDef || !charDef.model) return;
+    const palette = NPC_PRESETS[pt.preset % NPC_PRESETS.length];
+    _buildProceduralNPC(scene, pt.x, pt.z, pt.ry, palette, i);
+  });
+}
 
-    loadCharacterModel(scene, charDef.model).then(result => {
-      if (!result) return;  // GLB not found — no NPC that's fine
+function _buildProceduralNPC(scene, x, z, rotY, palette, id) {
+  const c3 = (arr) => new BABYLON.Color3(arr[0], arr[1], arr[2]);
 
-      const npcRoot = result.root;
-      npcRoot.position = new BABYLON.Vector3(pt.x, 0, pt.z);
-      npcRoot.rotation.y = pt.ry;
-      npcRoot.scaling  = new BABYLON.Vector3(
-        charDef.scale, charDef.scale, charDef.scale
-      );
+  const skinMat  = new BABYLON.StandardMaterial("npcSkin_"  + id, scene);
+  skinMat.diffuseColor  = c3(palette.skin);
 
-      // Play idle animation if available
-      playAnimation(result.animationGroups, "Idle", true);
-    });
+  const shirtMat = new BABYLON.StandardMaterial("npcShirt_" + id, scene);
+  shirtMat.diffuseColor = c3(palette.shirt);
+
+  const pantsMat = new BABYLON.StandardMaterial("npcPants_" + id, scene);
+  pantsMat.diffuseColor = c3(palette.pants);
+
+  const hairMat  = new BABYLON.StandardMaterial("npcHair_"  + id, scene);
+  hairMat.diffuseColor  = c3(palette.hair);
+
+  const shoesMat = new BABYLON.StandardMaterial("npcShoes_" + id, scene);
+  shoesMat.diffuseColor = new BABYLON.Color3(0.12, 0.08, 0.04);
+
+  const box = (name, w, h, d, mat, px, py, pz, parent) => {
+    const m = BABYLON.MeshBuilder.CreateBox(name + id, { width: w, height: h, depth: d }, scene);
+    m.material = mat;
+    if (parent) m.parent = parent;
+    m.position.set(px, py, pz);
+    return m;
+  };
+
+  const root = new BABYLON.TransformNode("npcRoot_" + id, scene);
+  root.position.set(x, 0.5, z);
+  root.rotation.y = rotY;
+
+  const torso    = box("npcTorso_",   0.50, 0.60, 0.28, shirtMat, 0, 0.70, 0, root);
+  // head
+  const head     = box("npcHead_",    0.40, 0.40, 0.36, skinMat,  0, 1.17, 0, root);
+  box("npcHair_",                      0.42, 0.09, 0.38, hairMat,  0, 1.40, 0, root);
+  // eyes
+  const eyeMat   = new BABYLON.StandardMaterial("npcEye_" + id, scene);
+  eyeMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+  box("npcEyeL_", 0.07, 0.07, 0.05, eyeMat, -0.10, 1.23, 0.17, root);
+  box("npcEyeR_", 0.07, 0.07, 0.05, eyeMat,  0.10, 1.23, 0.17, root);
+  // arms
+  box("npcLArm_", 0.15, 0.55, 0.15, shirtMat, -0.34, 0.44, 0, root);
+  box("npcRArm_", 0.15, 0.55, 0.15, shirtMat,  0.34, 0.44, 0, root);
+  // legs
+  box("npcLLeg_", 0.18, 0.52, 0.18, pantsMat,  -0.14, 0.09, 0, root);
+  box("npcRLeg_", 0.18, 0.52, 0.18, pantsMat,   0.14, 0.09, 0, root);
+  // feet
+  box("npcLFoot_", 0.19, 0.09, 0.26, shoesMat, -0.14, -0.18, 0.03, root);
+  box("npcRFoot_", 0.19, 0.09, 0.26, shoesMat,  0.14, -0.18, 0.03, root);
+
+  // Idle breathing + gentle head bob
+  let t = Math.random() * Math.PI * 2;  // stagger phase per NPC
+  scene.registerBeforeRender(() => {
+    t += 0.018;
+    torso.position.y = 0.70 + Math.sin(t) * 0.012;
+    head.position.y  = 1.17 + Math.sin(t) * 0.012;
   });
 }
