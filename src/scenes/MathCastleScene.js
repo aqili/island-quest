@@ -419,8 +419,9 @@ function _addRoomFurniture(scene, idx, baseZ, wallColor, accentColor) {
       barrel.material = darkMat;
     }
   }
-} ──────────────────────────────────────────────────────────
+}
 
+// ── Puzzle door sign ────────────────────────────────────────────────────────────
 function _buildPuzzleSign(scene, z, idx, accentColor) {
   const postMat = new BABYLON.StandardMaterial("signPost_" + idx, scene);
   postMat.diffuseColor = new BABYLON.Color3(0.38, 0.24, 0.10);
