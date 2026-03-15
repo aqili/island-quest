@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Island Quest 🏝️</title>
 
   <!-- Kid-friendly font -->
@@ -29,14 +31,9 @@
     <div id="hud-location"></div>
     <div id="hud-stars"></div>
     <div id="hud-crowns"></div>
-    <button id="btn-respawn" title="Return to World Map">🏠 Respawn</button>
-  </div>
-
-  <!-- Controls hint (bottom-left corner) -->
-  <div id="controls-hint">
-    <span>WASD — Move</span>
-    <span>← → — Rotate camera</span>
-    <span>↑ ↓ — Tilt camera</span>
+    <div id="hud-exit" style="display:none">
+      <button id="hud-exit-btn">🚪 Leave Castle</button>
+    </div>
   </div>
 
   <!-- Entry point — ES6 module -->
