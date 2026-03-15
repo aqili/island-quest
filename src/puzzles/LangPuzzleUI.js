@@ -14,6 +14,7 @@ const overlay = document.getElementById("ui-overlay");
 export function hidePuzzle() {
   overlay.innerHTML = "";
   overlay.classList.remove("active");
+  document.getElementById("renderCanvas").style.pointerEvents = "";
 }
 
 /**
@@ -24,6 +25,7 @@ export function hidePuzzle() {
 export function showPuzzle(puzzleData, roomType, onSuccess) {
   overlay.innerHTML = "";
   overlay.classList.add("active");
+  document.getElementById("renderCanvas").style.pointerEvents = "none";
 
   const panel = document.createElement("div");
   panel.className = "puzzle-panel";

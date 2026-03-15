@@ -87,6 +87,14 @@ body {
 
 #ui-overlay.active {
   display: flex;
+  pointer-events: all;
+  touch-action: auto;
+}
+
+/* Hide nav hint when puzzle is open */
+#ui-overlay.active ~ #castle-nav-hint,
+body:has(#ui-overlay.active) #castle-nav-hint {
+  display: none;
 }
 
 /* Puzzle panel card */
@@ -100,6 +108,8 @@ body {
   text-align: center;
   box-shadow: 0 12px 40px rgba(0,0,0,0.35);
   animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: auto;
+  touch-action: auto;
 }
 
 @keyframes popIn {
@@ -137,6 +147,8 @@ body {
   text-align: center;
   color: #2c3e50;
   outline: none;
+  touch-action: manipulation;
+  pointer-events: auto;
   transition: border-color 0.2s;
 }
 
@@ -153,6 +165,8 @@ body {
   border: none;
   border-radius: 16px;
   cursor: pointer;
+  touch-action: manipulation;
+  pointer-events: auto;
   transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
   box-shadow: 0 5px 0 rgba(0,0,0,0.18);
 }
@@ -357,68 +371,70 @@ body {
   100% { opacity: 0; }
 }
 
-/* ===== Respawn button ===== */
-#btn-respawn {
-  font-family: 'Fredoka One', cursive;
-  font-size: 1.1rem;
-  padding: 6px 16px;
-  border: none;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  cursor: pointer;
-  pointer-events: auto;
-  transition: background 0.15s, transform 0.1s;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.30);
-  white-space: nowrap;
-}
-
-#btn-respawn:hover {
-  background: rgba(255, 255, 255, 0.32);
-  transform: translateY(-2px);
-}
-
-#btn-respawn:active {
-  transform: translateY(1px);
-}
-
-/* ===== Virtual Joystick ===== */
-#joy-wrap {
+/* ===== Castle nav hint (bottom center, above joystick) ===== */
+#castle-nav-hint {
   position: fixed;
-  bottom: 36px;
-  left: 36px;
+  bottom: 158px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.65);
+  color: #ffe066;
+  font-size: 1.1rem;
+  padding: 8px 22px;
+  border-radius: 20px;
   z-index: 150;
-  pointer-events: auto;
-  /* hide on non-touch devices */
-  display: none;
+  pointer-events: none;
+  text-align: center;
+  animation: hintPulse 2s ease-in-out infinite;
 }
 
-@media (pointer: coarse) {
-  #joy-wrap { display: block; }
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.75; }
+  50%       { opacity: 1;    }
 }
 
-#joy-base {
+/* ===== Virtual Joystick (analog circle + knob) ===== */
+#joystick-base {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
   width: 110px;
   height: 110px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  border: 3px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.18);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  z-index: 150;
+  touch-action: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.30);
-  touch-action: none;
+  user-select: none;
 }
 
-#joy-knob {
-  width: 52px;
-  height: 52px;
+#joystick-knob {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.70);
-  border: 2px solid rgba(255, 255, 255, 0.90);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-  transition: transform 0.05s ease-out;
+  background: rgba(255, 255, 255, 0.55);
+  touch-action: none;
   pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transition: transform 0.05s;
+}
+
+#joystick-label {
+  position: fixed;
+  bottom: 140px;
+  left: 24px;
+  width: 110px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  z-index: 150;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* ===== Loading screen ===== */
@@ -449,4 +465,38 @@ body {
 #loading-screen .subtitle {
   font-size: 1.3rem;
   color: #b3d9f5;
+}
+
+/* ===== Exit Castle button (shown in castle scenes) ===== */
+#hud-exit {
+  margin-left: auto;
+}
+
+#hud-exit-btn {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.1rem;
+  padding: 8px 18px;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.2);
+  transition: background 0.15s, transform 0.1s;
+}
+
+#hud-exit-btn:hover { background: #c0392b; transform: translateY(-2px); }
+#hud-exit-btn:active { transform: translateY(1px); }
+
+/* ===== Scrollable puzzle panel on small screens ===== */
+.puzzle-panel {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ===== Touch-friendly larger puzzle buttons on mobile ===== */
+@media (max-width: 600px) {
+  .btn { min-height: 72px; font-size: 1.4rem; }
+  .puzzle-panel { padding: 24px 16px; }
 }
