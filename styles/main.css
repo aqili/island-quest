@@ -651,9 +651,13 @@ html[dir="rtl"] #loading-screen .subtitle {
   position: fixed;
   inset: 0;
   background: linear-gradient(160deg, #0e3a6e 0%, #1a6fa8 50%, #0b2a52 100%);
+  /* flex-direction: column so overflow-y scroll works correctly on mobile */
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;   /* smooth iOS momentum scroll */
+  padding: 20px 0;
   z-index: 600;
   transition: opacity 0.5s;
 }
@@ -673,6 +677,9 @@ html[dir="rtl"] #loading-screen .subtitle {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* center vertically when card fits; auto-collapses when scrolling is needed */
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .avatar-title {
@@ -819,10 +826,14 @@ html[dir="rtl"] #loading-screen .subtitle {
 
 /* Mobile adjustments for avatar screen */
 @media (max-width: 540px) {
-  .avatar-card  { padding: 20px 16px; }
-  .avatar-title { font-size: 1.5rem; }
-  .avatar-body  { gap: 16px; flex-direction: column; align-items: center; }
-  .swatch       { width: 30px; height: 30px; }
+  .avatar-card    { padding: 16px 12px; gap: 14px; }
+  .avatar-title   { font-size: 1.5rem; }
+  .avatar-body    { gap: 12px; flex-direction: column; align-items: center; }
+  .swatch         { width: 32px; height: 32px; }
+  /* Hide the decorative CSS character preview on small phones to save ~200px */
+  .avatar-preview { display: none; }
+  .avatar-options { min-width: 0; width: 100%; }
+  .btn-play       { font-size: 1.4rem; padding: 12px 0; }
 }
 
 /* RTL adjustments for avatar screen */

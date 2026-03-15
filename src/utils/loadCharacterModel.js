@@ -22,10 +22,12 @@ export async function loadCharacterModel(scene, modelPath) {
   const BABYLON = window.BABYLON;
   if (!modelPath) return null;
 
-  // Split into folder and filename for SceneLoader
+  // Split into folder and filename for SceneLoader.
+  // Works for both local paths ("assets/characters/kenney/robot.glb")
+  // and full CDN URLs ("https://threejs.org/examples/models/gltf/Soldier.glb").
   const lastSlash = modelPath.lastIndexOf("/");
-  const folder    = modelPath.substring(0, lastSlash + 1);   // "assets/characters/kenney/"
-  const file      = modelPath.substring(lastSlash + 1);      // "robot.glb"
+  const folder    = modelPath.substring(0, lastSlash + 1);
+  const file      = modelPath.substring(lastSlash + 1);
 
   try {
     const result = await BABYLON.SceneLoader.ImportMeshAsync("", folder, file, scene);

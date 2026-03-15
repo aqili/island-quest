@@ -55,9 +55,10 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   });
 
   // ── Foam ring around each island ─────────────────────────────────────────
-  _buildFoamRing(scene, -30, 0, 13.5);
-  _buildFoamRing(scene,  30, 0, 13.5);
-  _buildFoamRing(scene,   0, -55, 13.5);
+  _buildFoamRing(scene, -30,   0, 13.5);  // Math Island
+  _buildFoamRing(scene,  30,   0, 13.5);  // Language Island
+  _buildFoamRing(scene,   0, -55, 13.5);  // Letters Island
+  _buildFoamRing(scene,   0,  55, 13.5);  // Numbers Island (was missing)
 
   // ── Clouds ───────────────────────────────────────────────────────────────
   const cloudPositions = [
@@ -100,6 +101,20 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   animals.push(_buildCow(scene,    4, 53, 5, 13));
   animals.push(_buildCow(scene,   -4, 53, 5, 14));
 
+  // ── Treasure chests near each island ─────────────────────────────────────
+  _buildTreasureChest(scene, -22,   4);   // Math Island
+  _buildTreasureChest(scene,  22,   4);   // Language Island
+  _buildTreasureChest(scene,   4, -48);   // Letters Island
+  _buildTreasureChest(scene,  -4,  48);   // Numbers Island
+
+  // ── Animated seagulls ────────────────────────────────────────────────────
+  const seagulls = [
+    _buildSeagull(scene,  -8, 16,  10,  0.012, 0),
+    _buildSeagull(scene,  10, 20, -12,  0.009, 1),
+    _buildSeagull(scene, -18, 14,  -5,  0.011, 2),
+    _buildSeagull(scene,   5, 18,  20,  0.010, 3),
+  ];
+
   // ── Player ────────────────────────────────────────────────────────────────
   const player = createPlayer(scene);
   player.mesh.position    = new BABYLON.Vector3(0, 0.5, 0);
@@ -119,7 +134,7 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       save.mathIsland.crownEarned     ? "👑🔢" : "",
       save.languageIsland.crownEarned ? "👑🔤" : "",
       (save.lettersIsland  && save.lettersIsland.crownEarned)  ? "👑🔡" : "",
-      (save.numbersIsland  && save.numbersIsland.crownEarned)  ? "👑🔢" : ""
+      (save.numbersIsland  && save.numbersIsland.crownEarned)  ? "👑🔟" : ""
     ].filter(Boolean).join("  ");
     hudCrowns.textContent = crowns;
   }
@@ -149,6 +164,9 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       // Update animals (isolated so errors never block door triggers)
       animals.forEach(a => { try { a.update(); } catch(e) {} });
 
+      // Animate seagulls
+      seagulls.forEach(s => { try { s.update(); } catch(e) {} });
+
       const px = player.mesh.position;
 
       const distMath    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-30, px.y,   0));
@@ -163,7 +181,7 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       } else if (distLetters < 15) {
         if (lastNearIsland !== "letters") { lastNearIsland = "letters"; hudLocation.textContent = "🔡 Letters Island"; }
       } else if (distNums < 15) {
-        if (lastNearIsland !== "numbers") { lastNearIsland = "numbers"; hudLocation.textContent = "🔢 Numbers Island"; }
+        if (lastNearIsland !== "numbers") { lastNearIsland = "numbers"; hudLocation.textContent = "🔟 Numbers Island"; }
       } else {
         if (lastNearIsland !== null) { lastNearIsland = null; hudLocation.textContent = "🌊 Open Ocean"; }
       }
@@ -1204,4 +1222,161 @@ function _buildProceduralNPC(scene, x, z, rotY, palette, id) {
     torso.position.y = 0.70 + Math.sin(t) * 0.012;
     head.position.y  = 1.17 + Math.sin(t) * 0.012;
   });
+}
+
+// ── Treasure Chest ────────────────────────────────────────────────────────────
+function _buildTreasureChest(scene, x, z) {
+  const woodMat = new BABYLON.StandardMaterial("chestWood_" + x + z, scene);
+  woodMat.diffuseColor = new BABYLON.Color3(0.55, 0.32, 0.08);
+
+  const metalMat = new BABYLON.StandardMaterial("chestMetal_" + x + z, scene);
+  metalMat.diffuseColor  = new BABYLON.Color3(0.72, 0.60, 0.18);
+  metalMat.specularColor = new BABYLON.Color3(1.0, 0.9, 0.4);
+  metalMat.specularPower = 32;
+
+  const goldMat = new BABYLON.StandardMaterial("chestGold_" + x + z, scene);
+  goldMat.diffuseColor  = new BABYLON.Color3(1.0, 0.85, 0.15);
+  goldMat.emissiveColor = new BABYLON.Color3(0.3, 0.22, 0.0);
+
+  const base = BABYLON.MeshBuilder.CreateBox("chestBase_" + x + z,
+    { width: 0.90, height: 0.55, depth: 0.62 }, scene);
+  base.position = new BABYLON.Vector3(x, 0.28, z);
+  base.material = woodMat;
+
+  // Lid (slightly wider, raised)
+  const lid = BABYLON.MeshBuilder.CreateBox("chestLid_" + x + z,
+    { width: 0.92, height: 0.26, depth: 0.64 }, scene);
+  lid.position = new BABYLON.Vector3(x, 0.68, z);
+  lid.material = woodMat;
+
+  // Metal bands (horizontal straps)
+  [-0.18, 0.18].forEach((bx, i) => {
+    const band = BABYLON.MeshBuilder.CreateBox("chestBand_" + x + z + i,
+      { width: 0.93, height: 0.06, depth: 0.65 }, scene);
+    band.position = new BABYLON.Vector3(x + bx, 0.28, z);
+    band.material = metalMat;
+  });
+
+  // Gold clasp on front
+  const clasp = BABYLON.MeshBuilder.CreateBox("chestClasp_" + x + z,
+    { width: 0.16, height: 0.16, depth: 0.08 }, scene);
+  clasp.position = new BABYLON.Vector3(x, 0.55, z + 0.32);
+  clasp.material = goldMat;
+
+  // Gentle bob animation
+  let chestT = Math.random() * Math.PI * 2;
+  scene.registerBeforeRender(() => {
+    chestT += 0.012;
+    const bob = Math.sin(chestT) * 0.015;
+    base.position.y = 0.28 + bob;
+    lid.position.y  = 0.68 + bob;
+    clasp.position.y = 0.55 + bob;
+  });
+}
+
+// ── Seagull ───────────────────────────────────────────────────────────────────
+/**
+ * Creates a procedural animated seagull that circles in the sky.
+ * @param {BABYLON.Scene} scene
+ * @param {number} cx  circle center X
+ * @param {number} cy  flight altitude Y
+ * @param {number} cz  circle center Z
+ * @param {number} speed  orbit speed (radians/frame)
+ * @param {number} id  unique id for mesh naming
+ * @returns {{ update: function }}
+ */
+function _buildSeagull(scene, cx, cy, cz, speed, id) {
+  const bodyMat = new BABYLON.StandardMaterial("sgBody_" + id, scene);
+  bodyMat.diffuseColor  = new BABYLON.Color3(0.95, 0.95, 0.95);
+  bodyMat.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+
+  const wingMat = new BABYLON.StandardMaterial("sgWing_" + id, scene);
+  wingMat.diffuseColor  = new BABYLON.Color3(0.88, 0.88, 0.90);
+  wingMat.emissiveColor = new BABYLON.Color3(0.08, 0.08, 0.08);
+
+  const beakMat = new BABYLON.StandardMaterial("sgBeak_" + id, scene);
+  beakMat.diffuseColor = new BABYLON.Color3(0.95, 0.65, 0.10);
+
+  const root = new BABYLON.TransformNode("sgRoot_" + id, scene);
+  root.position = new BABYLON.Vector3(cx, cy, cz);
+
+  // Body
+  const body = BABYLON.MeshBuilder.CreateSphere("sgBody_" + id,
+    { diameterX: 0.50, diameterY: 0.28, diameterZ: 0.65, segments: 5 }, scene);
+  body.parent   = root;
+  body.material = bodyMat;
+
+  // Head
+  const head = BABYLON.MeshBuilder.CreateSphere("sgHead_" + id,
+    { diameter: 0.22, segments: 4 }, scene);
+  head.parent   = root;
+  head.position = new BABYLON.Vector3(0, 0.08, 0.33);
+  head.material = bodyMat;
+
+  // Beak
+  const beak = BABYLON.MeshBuilder.CreateCylinder("sgBeak_" + id,
+    { diameterTop: 0.02, diameterBottom: 0.07, height: 0.18, tessellation: 5 }, scene);
+  beak.parent   = root;
+  beak.position = new BABYLON.Vector3(0, 0.04, 0.48);
+  beak.rotation.x = Math.PI / 2;
+  beak.material = beakMat;
+
+  // Wing pivots — so wings flap from the body shoulder
+  const lWingPivot = new BABYLON.TransformNode("sgLWP_" + id, scene);
+  lWingPivot.parent   = root;
+  lWingPivot.position = new BABYLON.Vector3(-0.10, 0, 0);
+
+  const rWingPivot = new BABYLON.TransformNode("sgRWP_" + id, scene);
+  rWingPivot.parent   = root;
+  rWingPivot.position = new BABYLON.Vector3(0.10, 0, 0);
+
+  // Wing meshes (flat elongated boxes)
+  const lWing = BABYLON.MeshBuilder.CreateBox("sgLWing_" + id,
+    { width: 0.80, height: 0.05, depth: 0.28 }, scene);
+  lWing.parent   = lWingPivot;
+  lWing.position = new BABYLON.Vector3(-0.40, 0, 0);
+  lWing.material = wingMat;
+
+  const rWing = BABYLON.MeshBuilder.CreateBox("sgRWing_" + id,
+    { width: 0.80, height: 0.05, depth: 0.28 }, scene);
+  rWing.parent   = rWingPivot;
+  rWing.position = new BABYLON.Vector3(0.40, 0, 0);
+  rWing.material = wingMat;
+
+  // Wingtip details
+  const lTip = BABYLON.MeshBuilder.CreateBox("sgLTip_" + id,
+    { width: 0.20, height: 0.04, depth: 0.15 }, scene);
+  lTip.parent   = lWingPivot;
+  lTip.position = new BABYLON.Vector3(-0.88, 0, 0.04);
+  lTip.material = beakMat;
+
+  const rTip = BABYLON.MeshBuilder.CreateBox("sgRTip_" + id,
+    { width: 0.20, height: 0.04, depth: 0.15 }, scene);
+  rTip.parent   = rWingPivot;
+  rTip.position = new BABYLON.Vector3(0.88, 0, 0.04);
+  rTip.material = beakMat;
+
+  const orbitRadius = 12 + id * 5;
+  let   orbitAngle  = (id / 4) * Math.PI * 2;  // stagger starting positions
+  let   flapT       = Math.random() * Math.PI * 2;
+
+  return {
+    update() {
+      orbitAngle += speed;
+      flapT      += 0.12;
+
+      // Orbit
+      root.position.x = cx + Math.cos(orbitAngle) * orbitRadius;
+      root.position.y = cy + Math.sin(flapT * 0.3) * 0.8;
+      root.position.z = cz + Math.sin(orbitAngle) * orbitRadius;
+
+      // Face direction of travel (tangent to circle)
+      root.rotation.y = -orbitAngle + Math.PI / 2;
+
+      // Flap wings
+      const flapAngle = Math.sin(flapT) * 0.55;
+      lWingPivot.rotation.z =  flapAngle;
+      rWingPivot.rotation.z = -flapAngle;
+    }
+  };
 }

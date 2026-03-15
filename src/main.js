@@ -125,6 +125,15 @@ SaveManager.load();
 // Initialise i18n (reads saved language from localStorage)
 initI18n();
 
+// ── One-time character migration ──────────────────────────────────────────────
+// If the player has the old "procedural" (rectangular) default saved,
+// clear it so they get the new 3D Soldier character automatically.
+try {
+  if (localStorage.getItem("iq_character") === "procedural") {
+    localStorage.removeItem("iq_character");
+  }
+} catch(e) {}
+
 // Show loading → avatar selector → start world
 const loadingScreen = _buildLoadingScreen();
 document.body.appendChild(loadingScreen);

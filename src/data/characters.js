@@ -176,10 +176,48 @@ export const CHARACTER_REGISTRY = [
     animations:  { idle: "Idle", walk: "Walk", run: "Run", jump: "Jump" },
     preset:      null,
   },
+
+  // ── CDN Characters – ready to use, no download needed ────────────────────
+  {
+    id:          "cdn_soldier",
+    name:        "Soldier",
+    source:      "cdn",
+    model:       "https://threejs.org/examples/models/gltf/Soldier.glb",
+    thumbnail:   "💂",
+    description: "An animated soldier (Three.js CC0)",
+    scale:       1.0,   // origin at feet; ~1.75 units tall at scale 1 — fits world correctly
+    yOffset:     0.0,
+    animations:  { idle: "Idle", walk: "Walk", run: "Run", jump: "Walk" },
+    preset:      null,
+  },
+  {
+    id:          "cdn_cesiumman",
+    name:        "Cesium Man",
+    source:      "cdn",
+    model:       "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/CesiumMan/glTF-Binary/CesiumMan.glb",
+    thumbnail:   "🚶",
+    description: "An animated walking figure (Khronos CC-BY 4.0)",
+    scale:       0.90,
+    yOffset:     0.0,
+    animations:  { idle: "CesiumMan", walk: "CesiumMan", run: "CesiumMan", jump: "CesiumMan" },
+    preset:      null,
+  },
+  {
+    id:          "cdn_fox",
+    name:        "Fox",
+    source:      "cdn",
+    model:       "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Fox/glTF-Binary/Fox.glb",
+    thumbnail:   "🦊",
+    description: "An animated fox (Khronos CC-BY 4.0)",
+    scale:       0.018,
+    yOffset:     0.0,
+    animations:  { idle: "Survey", walk: "Walk", run: "Run", jump: "Walk" },
+    preset:      null,
+  },
 ];
 
 /** Default character used when nothing is saved */
-export const DEFAULT_CHARACTER_ID = "procedural";
+export const DEFAULT_CHARACTER_ID = "cdn_soldier";
 
 /**
  * Look up a character by id, falling back to the default if not found.
