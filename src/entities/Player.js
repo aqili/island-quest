@@ -101,18 +101,21 @@ export function createPlayer(scene) {
   torso.position.y = 0.70;
 
   // ── Camera ───────────────────────────────────────────────────────────────
+  // Target tracks player at chest height for a better 3rd-person view
+  const camTarget = new BABYLON.Vector3(0, 1.0, 0);
+
   const camera = new BABYLON.ArcRotateCamera(
     "playerCam",
     -Math.PI / 2,
-    Math.PI / 3.5,
+    Math.PI / 3.2,   // slightly more horizontal — shows more world ahead
     14,
-    root.position,
+    camTarget,
     scene
   );
   camera.lowerRadiusLimit = 6;
   camera.upperRadiusLimit = 20;
-  camera.lowerBetaLimit   = 0.3;
-  camera.upperBetaLimit   = Math.PI / 2.2;
+  camera.lowerBetaLimit   = 0.15;   // can look more overhead
+  camera.upperBetaLimit   = Math.PI / 2.1;
   camera.attachControl(scene.getEngine().getRenderingCanvas(), true);
 
   // ── Keyboard input ───────────────────────────────────────────────────────
@@ -209,16 +212,30 @@ export function createPlayer(scene) {
   const SPEED = 0.15;
   let walkTime = 0;
 
+  const CAM_ROT = 0.035;   // radians per frame for arrow-key camera rotation
+
   // ── Update ───────────────────────────────────────────────────────────────
   function update() {
-    camera.target = root.position;
+    // Lock player on ground plane — never drift on Y
+    root.position.y = 0.5;
 
-    // Merge keyboard + joystick input
+    // Camera target tracks player at chest height for better framing
+    camTarget.x = root.position.x;
+    camTarget.y = root.position.y + 0.9;
+    camTarget.z = root.position.z;
+
+    // Arrow keys rotate the camera (L/R directions flipped for natural feel)
+    if (keys["ArrowLeft"])  camera.alpha += CAM_ROT;   // flipped: ← orbits right
+    if (keys["ArrowRight"]) camera.alpha -= CAM_ROT;   // flipped: → orbits left
+    if (keys["ArrowUp"])    camera.beta   = Math.max(camera.lowerBetaLimit, camera.beta - 0.025);
+    if (keys["ArrowDown"])  camera.beta   = Math.min(camera.upperBetaLimit, camera.beta + 0.025);
+
+    // Player movement — WASD + joystick only (arrow keys reserved for camera)
     let dx = 0, dz = 0;
-    if (keys["KeyW"] || keys["ArrowUp"])    dz =  1;
-    if (keys["KeyS"] || keys["ArrowDown"])  dz = -1;
-    if (keys["KeyA"] || keys["ArrowLeft"])  dx = -1;
-    if (keys["KeyD"] || keys["ArrowRight"]) dx =  1;
+    if (keys["KeyW"]) dz =  1;
+    if (keys["KeyS"]) dz = -1;
+    if (keys["KeyA"]) dx = -1;
+    if (keys["KeyD"]) dx =  1;
     // Joystick overrides keyboard if touched
     if (joy.dx !== 0 || joy.dz !== 0) {
       dx = joy.dx;
