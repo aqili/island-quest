@@ -544,32 +544,36 @@ function _buildSign(scene, x, z, text, color) {
   const dt  = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 180 }, scene);
   const ctx = dt.getContext();
 
+  // Pre-flip canvas so BabylonJS's natural UV-mirroring on a box cancels it out
+  ctx.save();
+  ctx.translate(512, 0);
+  ctx.scale(-1, 1);
+
   // Background
   ctx.fillStyle = "#1a0e04";
   ctx.fillRect(0, 0, 512, 180);
 
   // Border
-  ctx.strokeStyle = "#" + Math.floor(color.r * 255).toString(16).padStart(2,"0")
-                       + Math.floor(color.g * 255).toString(16).padStart(2,"0")
-                       + Math.floor(color.b * 255).toString(16).padStart(2,"0");
+  const hex = (v) => Math.max(0, Math.min(255, Math.floor(v * 255))).toString(16).padStart(2, "0");
+  const borderCol = "#" + hex(color.r) + hex(color.g) + hex(color.b);
+  ctx.strokeStyle = borderCol;
   ctx.lineWidth = 5;
   ctx.strokeRect(5, 5, 502, 170);
 
-  // Title
-  ctx.fillStyle = "#" + Math.floor(color.r * 255).toString(16).padStart(2,"0")
-                      + Math.floor(color.g * 255).toString(16).padStart(2,"0")
-                      + Math.floor(color.b * 255).toString(16).padStart(2,"0");
+  // Title  (strip emoji for canvas compatibility)
+  const titleText = text.replace(/[^\x00-\x7F]/g, "").trim();
+  ctx.fillStyle = borderCol;
   ctx.font = "bold 52px Arial";
   ctx.textAlign = "center";
-  ctx.fillText(title, 256, 76);
+  ctx.fillText(titleText, 256, 76);
 
   // Subtitle
   ctx.fillStyle = "#eeeeee";
   ctx.font = "28px Arial";
   ctx.fillText(subtitle, 256, 142);
 
+  ctx.restore();
   dt.update();
-  dt.uScale = -1;   // un-mirror text on box face
 
   const boardMat = new BABYLON.StandardMaterial("boardMat_" + x, scene);
   boardMat.diffuseColor   = color;
