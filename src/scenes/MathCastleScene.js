@@ -547,26 +547,20 @@ function _buildDoorSign(scene, idx, cx, dz, accentColor) {
   ctx.fillStyle = "#FFD700"; ctx.font = "bold 60px Arial"; ctx.textAlign = "center";
   ctx.fillText("ROOM " + (idx + 1), 256, 76);
   ctx.fillStyle = "#FF8800"; ctx.font = "bold 36px Arial";
-  ctx.fillText(ROOMS[idx].name.split("—")[1] || ROOMS[idx].name, 256, 136);
+  ctx.fillText(ROOMS[idx].name.split("\u2014")[1]?.trim() || ROOMS[idx].name, 256, 136);
   ctx.fillStyle = "#cccccc"; ctx.font = "26px Arial";
   ctx.fillText("Walk to the door to play!", 256, 192);
   bdt.update();
+  bdt.uScale = -1;   // un-mirror the texture on the box face
 
   const boardMat = new BABYLON.StandardMaterial("signBD_" + idx, scene);
   boardMat.diffuseTexture  = bdt;
   boardMat.emissiveTexture = bdt;
   boardMat.emissiveColor   = new BABYLON.Color3(0.55, 0.45, 0.0);
-  boardMat.backFaceCulling = true;
+  boardMat.backFaceCulling = false;
 
-  // Sign placement: approach side of the door
-  // Even rooms (dz=ROOM_L): player comes from low-z → sign at dz-3.5, faces -z (rotation.y = π)
-  // Odd rooms  (dz=0):      player comes from high-z → sign at dz+3.5, faces +z (rotation.y = 0)
   const signZ = dz > ROOM_L / 2 ? dz - 3.5 : dz + 3.5;
-  const signBrd = BABYLON.MeshBuilder.CreatePlane("signBrd_" + idx,
-    { width: 4.2, height: 1.8, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
-  signBrd.position.set(cx, 3.2, signZ);
-  signBrd.rotation.y = (dz > ROOM_L / 2) ? Math.PI : 0;
-  signBrd.material = boardMat;
+  box("signBrd_" + idx, scene, 4.2, 1.8, 0.12, cx, 3.2, signZ, boardMat);
 
   const stripMat = _mat(scene, "signSt_" + idx, accentColor, 0.42);
   box("signSt_"  + idx, scene, 4.4, 0.14, 0.14, cx, 4.12, signZ, stripMat);

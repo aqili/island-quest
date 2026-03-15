@@ -534,20 +534,49 @@ function _buildSign(scene, x, z, text, color) {
     { width: 4.2, height: 1.4, depth: 0.14 }, scene);
   board.position = new BABYLON.Vector3(x, 2.6, z);
 
-  const plainText = text.replace(/[^\x00-\x7F]/g, "").trim();
+  let title    = text;
   let subtitle = "Enter the castle!";
-  if (text.includes("Math"))     subtitle = "Solve math puzzles inside";
-  if (text.includes("Language")) subtitle = "Answer language questions";
-  if (text.includes("Letters"))  subtitle = "Collect letters in order";
+  if (text.includes("Math"))     subtitle = "Solve math puzzles inside!";
+  if (text.includes("Language")) subtitle = "Answer language questions!";
+  if (text.includes("Letters"))  subtitle = "Collect letters in order!";
+  if (text.includes("Numbers"))  subtitle = "Count and sort numbers!";
 
-  const dt = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 160 }, scene);
-  dt.drawText(plainText, null, 68,  "bold 50px Arial", "#000000", "transparent", true, false);
-  dt.drawText(subtitle,  null, 130, "28px Arial",      "#222222", null,          true, true);
-  dt.uScale = -1;
+  const dt  = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 180 }, scene);
+  const ctx = dt.getContext();
+
+  // Background
+  ctx.fillStyle = "#1a0e04";
+  ctx.fillRect(0, 0, 512, 180);
+
+  // Border
+  ctx.strokeStyle = "#" + Math.floor(color.r * 255).toString(16).padStart(2,"0")
+                       + Math.floor(color.g * 255).toString(16).padStart(2,"0")
+                       + Math.floor(color.b * 255).toString(16).padStart(2,"0");
+  ctx.lineWidth = 5;
+  ctx.strokeRect(5, 5, 502, 170);
+
+  // Title
+  ctx.fillStyle = "#" + Math.floor(color.r * 255).toString(16).padStart(2,"0")
+                      + Math.floor(color.g * 255).toString(16).padStart(2,"0")
+                      + Math.floor(color.b * 255).toString(16).padStart(2,"0");
+  ctx.font = "bold 52px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(title, 256, 76);
+
+  // Subtitle
+  ctx.fillStyle = "#eeeeee";
+  ctx.font = "28px Arial";
+  ctx.fillText(subtitle, 256, 142);
+
+  dt.update();
+  dt.uScale = -1;   // un-mirror text on box face
 
   const boardMat = new BABYLON.StandardMaterial("boardMat_" + x, scene);
   boardMat.diffuseColor   = color;
   boardMat.diffuseTexture = dt;
+  boardMat.emissiveTexture = dt;
+  boardMat.emissiveColor  = new BABYLON.Color3(color.r * 0.18, color.g * 0.18, color.b * 0.18);
+  boardMat.backFaceCulling = false;
   board.material = boardMat;
 }
 
