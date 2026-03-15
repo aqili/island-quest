@@ -9,7 +9,7 @@ import { SaveManager }   from "../utils/SaveManager.js";
 
 const BABYLON = window.BABYLON;
 
-export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetters) {
+export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetters, onEnterNumbers) {
   const scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color4(0.38, 0.68, 0.95, 1);
 
@@ -70,6 +70,7 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   _buildMathIsland(scene);
   _buildLangIsland(scene);
   _buildLettersIsland(scene);
+  _buildNumbersIsland(scene);
 
   // ── Animals ───────────────────────────────────────────────────────────────
   // IDs must be unique across all animals; use explicit integer id
@@ -85,6 +86,16 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   animals.push(_buildCat(scene,   3, -53, 5, 5));
   animals.push(_buildDog(scene,  -5, -58, 5, 6));
   animals.push(_buildCat(scene,   5, -57, 5, 7));
+  // Horses near Math Island
+  animals.push(_buildHorse(scene, -26,  4, 7, 8));
+  animals.push(_buildHorse(scene, -34, -4, 7, 9));
+  // Cows near Lang Island
+  animals.push(_buildCow(scene,  26,  4, 7, 10));
+  animals.push(_buildCow(scene,  34, -4, 7, 11));
+  // Horse + cow near Numbers Island (z≈55)
+  animals.push(_buildHorse(scene,  -4, 57, 5, 12));
+  animals.push(_buildCow(scene,    4, 53, 5, 13));
+  animals.push(_buildCow(scene,   -4, 53, 5, 14));
 
   // ── Player ────────────────────────────────────────────────────────────────
   const player = createPlayer(scene);
@@ -99,7 +110,8 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
     const crowns = [
       save.mathIsland.crownEarned     ? "👑🔢" : "",
       save.languageIsland.crownEarned ? "👑🔤" : "",
-      (save.lettersIsland && save.lettersIsland.crownEarned) ? "👑🔤" : ""
+      (save.lettersIsland  && save.lettersIsland.crownEarned)  ? "👑🔡" : "",
+      (save.numbersIsland  && save.numbersIsland.crownEarned)  ? "👑🔢" : ""
     ].filter(Boolean).join("  ");
     hudCrowns.textContent = crowns;
   }
@@ -111,9 +123,10 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
 
   // ── Proximity / triggers ──────────────────────────────────────────────────
   // Trigger on island CENTER so any approach direction works (radius 10 = inside grass)
-  const mathCenter    = new BABYLON.Vector3(-30, 0, 0);
-  const langCenter    = new BABYLON.Vector3( 30, 0, 0);
+  const mathCenter    = new BABYLON.Vector3(-30, 0,  0);
+  const langCenter    = new BABYLON.Vector3( 30, 0,  0);
   const lettersCenter = new BABYLON.Vector3(  0, 0, -55);
+  const numbersCenter = new BABYLON.Vector3(  0, 0,  55);
 
   scene.registerBeforeRender(() => {
     try {
@@ -133,13 +146,16 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       const distMath    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-30, px.y,   0));
       const distLang    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3( 30, px.y,   0));
       const distLetters = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(  0, px.y, -55));
+      const distNums    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(  0, px.y,  55));
 
       if (distMath < 15) {
         if (lastNearIsland !== "math")    { lastNearIsland = "math";    hudLocation.textContent = "🔢 Math Island"; }
       } else if (distLang < 15) {
         if (lastNearIsland !== "lang")    { lastNearIsland = "lang";    hudLocation.textContent = "🔤 Language Island"; }
       } else if (distLetters < 15) {
-        if (lastNearIsland !== "letters") { lastNearIsland = "letters"; hudLocation.textContent = "🔤 Letters Island"; }
+        if (lastNearIsland !== "letters") { lastNearIsland = "letters"; hudLocation.textContent = "🔡 Letters Island"; }
+      } else if (distNums < 15) {
+        if (lastNearIsland !== "numbers") { lastNearIsland = "numbers"; hudLocation.textContent = "🔢 Numbers Island"; }
       } else {
         if (lastNearIsland !== null) { lastNearIsland = null; hudLocation.textContent = "🌊 Open Ocean"; }
       }
@@ -148,9 +164,11 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       const pdx2 = px.x - mathCenter.x,    pdz2 = px.z - mathCenter.z;
       const ldx2 = px.x - langCenter.x,    ldz2 = px.z - langCenter.z;
       const letdx = px.x - lettersCenter.x, letdz = px.z - lettersCenter.z;
+      const numdx = px.x - numbersCenter.x,  numdz = px.z - numbersCenter.z;
       const distM2 = Math.sqrt(pdx2*pdx2 + pdz2*pdz2);
       const distL2 = Math.sqrt(ldx2*ldx2 + ldz2*ldz2);
       const distLet = Math.sqrt(letdx*letdx + letdz*letdz);
+      const distNum = Math.sqrt(numdx*numdx + numdz*numdz);
 
       if (!switching && distM2 < 10) {
         switching = true; setTimeout(() => onEnterMath(), 0);
@@ -158,6 +176,8 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
         switching = true; setTimeout(() => onEnterLang(), 0);
       } else if (!switching && onEnterLetters && distLet < 10) {
         switching = true; setTimeout(() => onEnterLetters(), 0);
+      } else if (!switching && onEnterNumbers && distNum < 10) {
+        switching = true; setTimeout(() => onEnterNumbers(), 0);
       }
 
       updateHUD();
@@ -816,6 +836,253 @@ function _buildCat(scene, homeX, homeZ, wanderR, id) {
         legPivots[2].rotation.x = -swing;
         legPivots[3].rotation.x =  swing;
         tailPivot.rotation.z = 0.5 + Math.sin(walkT * 1.5) * 0.4;
+      } catch(e) {}
+    }
+  };
+}
+
+// ── Numbers Island ─────────────────────────────────────────────────────────────
+function _buildNumbersIsland(scene) {
+  const OX = 0, OZ = 55;
+
+  _buildIslandGround(scene, OX, OZ, "numbers",
+    new BABYLON.Color3(0.90, 0.88, 0.65),  // warm golden sand
+    new BABYLON.Color3(0.18, 0.32, 0.72)   // deep blue grass
+  );
+
+  _buildRocks(scene, OX, OZ, new BABYLON.Color3(0.28, 0.38, 0.60), 8);
+
+  _buildCastle(scene, OX, OZ,
+    new BABYLON.Color3(0.32, 0.42, 0.78),  // navy stone
+    new BABYLON.Color3(0.20, 0.30, 0.60),  // darker blue
+    new BABYLON.Color3(0.72, 0.58, 0.10)   // gold roofs
+  );
+
+  _buildFlag(scene, OX, OZ + 0, new BABYLON.Color3(0.90, 0.80, 0.20), "🔢");
+  _buildSign(scene, OX, OZ + 7.5, "Numbers Island", new BABYLON.Color3(0.90, 0.80, 0.20));
+
+  const treePositions = [[-4,-5],[4,-5],[-6,2],[6,2],[0,-8],[-5,0],[5,0]];
+  treePositions.forEach(([tx, tz]) => {
+    _buildPalmTree(scene, OX + tx, OZ + tz, new BABYLON.Color3(0.18, 0.45, 0.82));
+  });
+
+  _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(0.90, 0.80, 0.20));
+  _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(0.90, 0.80, 0.20));
+
+  // Number decorations
+  _buildLetterDecoration(scene, OX - 2, OZ + 5, "1");
+  _buildLetterDecoration(scene, OX + 2, OZ + 5, "2");
+  _buildLetterDecoration(scene, OX,     OZ + 6, "3");
+}
+
+// ── Horse ──────────────────────────────────────────────────────────────────────
+function _buildHorse(scene, homeX, homeZ, wanderR, id) {
+  const N = "h" + id;
+  const bodyMat = new BABYLON.StandardMaterial("horseMat" + N, scene);
+  bodyMat.diffuseColor = new BABYLON.Color3(0.62, 0.38, 0.14);
+
+  const maneMat = new BABYLON.StandardMaterial("horseMane" + N, scene);
+  maneMat.diffuseColor = new BABYLON.Color3(0.28, 0.16, 0.05);
+
+  const root = new BABYLON.TransformNode("horseRoot" + N, scene);
+  root.position = new BABYLON.Vector3(homeX, 0, homeZ);
+
+  function part(tag, w, h, d, px, py, pz, mat) {
+    const m = BABYLON.MeshBuilder.CreateBox(tag + N,
+      { width: w, height: h, depth: d }, scene);
+    m.material = mat || bodyMat;
+    m.parent   = root;
+    m.position = new BABYLON.Vector3(px, py, pz);
+    return m;
+  }
+
+  // Body (larger than dog)
+  part("hB",  0.80, 0.55, 1.50,  0,    0.80, 0);
+  // Neck
+  part("hNk", 0.28, 0.55, 0.28,  0,    1.10, 0.65);
+  // Head
+  part("hH",  0.32, 0.38, 0.55,  0,    1.42, 0.72);
+  // Snout
+  part("hSn", 0.20, 0.22, 0.32,  0,    1.32, 1.02);
+  // Mane (series of small blocks)
+  for (let mi = 0; mi < 4; mi++) {
+    part("hMn" + mi, 0.12, 0.28, 0.12,
+      -0.04, 1.18 + mi * 0.10, 0.55 - mi * 0.08, maneMat);
+  }
+  // Ears
+  part("hEL", 0.10, 0.22, 0.10, -0.14, 1.68, 0.76);
+  part("hER", 0.10, 0.22, 0.10,  0.14, 1.68, 0.76);
+  // Tail
+  const tailPivot = new BABYLON.TransformNode("hTP" + N, scene);
+  tailPivot.parent   = root;
+  tailPivot.position = new BABYLON.Vector3(0, 0.90, -0.75);
+  const tailMesh = BABYLON.MeshBuilder.CreateBox("hTl" + N,
+    { width: 0.16, height: 0.52, depth: 0.16 }, scene);
+  tailMesh.material = maneMat;
+  tailMesh.parent   = tailPivot;
+  tailMesh.position = new BABYLON.Vector3(0, 0.26, 0);
+
+  // Legs (4 — tall)
+  const legOffsets = [[-0.28,0.55],[0.28,0.55],[-0.28,-0.55],[0.28,-0.55]];
+  const legPivots = legOffsets.map(([ox, oz], i) => {
+    const piv = new BABYLON.TransformNode("hLP" + i + N, scene);
+    piv.parent   = root;
+    piv.position = new BABYLON.Vector3(ox, 0.50, oz);
+    const leg = BABYLON.MeshBuilder.CreateBox("hLg" + i + N,
+      { width: 0.17, height: 0.55, depth: 0.17 }, scene);
+    leg.material = bodyMat;
+    leg.parent   = piv;
+    leg.position = new BABYLON.Vector3(0, -0.27, 0);
+    return piv;
+  });
+
+  let walkT = Math.random() * Math.PI * 2;
+  let curX  = homeX, curZ = homeZ;
+  let angle = Math.random() * Math.PI * 2;
+  let timer = Math.floor(Math.random() * 80);
+  const SPD = 0.036;
+
+  return {
+    update() {
+      try {
+        walkT += 0.09;
+        timer++;
+        if (timer > 80 + Math.random() * 80) {
+          angle += (Math.random() - 0.5) * Math.PI;
+          timer = 0;
+        }
+        const nx = curX + Math.cos(angle) * SPD;
+        const nz = curZ + Math.sin(angle) * SPD;
+        const distHome = Math.sqrt((nx - homeX) ** 2 + (nz - homeZ) ** 2);
+        if (distHome > wanderR) {
+          angle = Math.atan2(homeZ - curZ, homeX - curX) + (Math.random() - 0.5) * 0.5;
+        } else {
+          curX = nx; curZ = nz;
+        }
+        root.position.x = curX;
+        root.position.z = curZ;
+        root.rotation.y = -(angle - Math.PI / 2);
+
+        const swing = Math.sin(walkT) * 0.55;
+        legPivots[0].rotation.x =  swing;
+        legPivots[1].rotation.x = -swing;
+        legPivots[2].rotation.x = -swing;
+        legPivots[3].rotation.x =  swing;
+        tailPivot.rotation.z = Math.sin(walkT * 1.8) * 0.45;
+      } catch(e) {}
+    }
+  };
+}
+
+// ── Cow ────────────────────────────────────────────────────────────────────────
+function _buildCow(scene, homeX, homeZ, wanderR, id) {
+  const N = "cw" + id;
+
+  const whiteMat = new BABYLON.StandardMaterial("cowWhite" + N, scene);
+  whiteMat.diffuseColor = new BABYLON.Color3(0.97, 0.97, 0.95);
+
+  const spotMat = new BABYLON.StandardMaterial("cowSpot" + N, scene);
+  spotMat.diffuseColor = new BABYLON.Color3(0.12, 0.12, 0.12);
+
+  const pinkMat = new BABYLON.StandardMaterial("cowPink" + N, scene);
+  pinkMat.diffuseColor = new BABYLON.Color3(0.95, 0.70, 0.72);
+
+  const root = new BABYLON.TransformNode("cowRoot" + N, scene);
+  root.position = new BABYLON.Vector3(homeX, 0, homeZ);
+
+  function part(tag, w, h, d, px, py, pz, mat) {
+    const m = BABYLON.MeshBuilder.CreateBox(tag + N,
+      { width: w, height: h, depth: d }, scene);
+    m.material = mat || whiteMat;
+    m.parent   = root;
+    m.position = new BABYLON.Vector3(px, py, pz);
+    return m;
+  }
+
+  // Wide body
+  part("cwB",  1.00, 0.65, 1.60,  0,    0.82, 0);
+  // Neck
+  part("cwNk", 0.32, 0.45, 0.32,  0,    1.08, 0.65);
+  // Head (wide)
+  part("cwH",  0.42, 0.40, 0.55,  0,    1.38, 0.70);
+  // Snout/muzzle (pink)
+  part("cwSn", 0.26, 0.22, 0.26,  0,    1.25, 1.00, pinkMat);
+  // Horns
+  for (const hx of [-0.22, 0.22]) {
+    const horn = BABYLON.MeshBuilder.CreateCylinder("cwHorn" + hx + N,
+      { diameterTop: 0.04, diameterBottom: 0.10, height: 0.30, tessellation: 6 }, scene);
+    horn.material = whiteMat;
+    horn.parent   = root;
+    horn.position = new BABYLON.Vector3(hx, 1.66, 0.70);
+    horn.rotation.z = hx > 0 ? 0.5 : -0.5;
+  }
+  // Ears
+  part("cwEL", 0.12, 0.22, 0.10, -0.25, 1.52, 0.68);
+  part("cwER", 0.12, 0.22, 0.10,  0.25, 1.52, 0.68);
+  // Udder
+  part("cwUd", 0.40, 0.22, 0.30,  0,    0.55, -0.30, pinkMat);
+  // Dark spots on body
+  part("cwSp1", 0.38, 0.32, 0.30, -0.20, 0.98, 0.25, spotMat);
+  part("cwSp2", 0.28, 0.28, 0.25,  0.25, 0.90, -0.35, spotMat);
+
+  // Tail
+  const tailPivot = new BABYLON.TransformNode("cwTP" + N, scene);
+  tailPivot.parent   = root;
+  tailPivot.position = new BABYLON.Vector3(0, 0.95, -0.80);
+  const tailMesh = BABYLON.MeshBuilder.CreateBox("cwTl" + N,
+    { width: 0.12, height: 0.50, depth: 0.12 }, scene);
+  tailMesh.material = whiteMat;
+  tailMesh.parent   = tailPivot;
+  tailMesh.position = new BABYLON.Vector3(0, 0.25, 0);
+
+  // Legs (4 — stocky)
+  const legOffsets = [[-0.34,0.60],[0.34,0.60],[-0.34,-0.60],[0.34,-0.60]];
+  const legPivots = legOffsets.map(([ox, oz], i) => {
+    const piv = new BABYLON.TransformNode("cwLP" + i + N, scene);
+    piv.parent   = root;
+    piv.position = new BABYLON.Vector3(ox, 0.50, oz);
+    const leg = BABYLON.MeshBuilder.CreateBox("cwLg" + i + N,
+      { width: 0.18, height: 0.55, depth: 0.18 }, scene);
+    // Alternate white/spot coloring on legs
+    leg.material = (i % 2 === 0) ? whiteMat : whiteMat;
+    leg.parent   = piv;
+    leg.position = new BABYLON.Vector3(0, -0.27, 0);
+    return piv;
+  });
+
+  let walkT = Math.random() * Math.PI * 2;
+  let curX  = homeX, curZ = homeZ;
+  let angle = Math.random() * Math.PI * 2;
+  let timer = Math.floor(Math.random() * 100);
+  const SPD = 0.020;  // cows walk slowly
+
+  return {
+    update() {
+      try {
+        walkT += 0.06;
+        timer++;
+        if (timer > 90 + Math.random() * 100) {
+          angle += (Math.random() - 0.5) * Math.PI * 0.9;
+          timer = 0;
+        }
+        const nx = curX + Math.cos(angle) * SPD;
+        const nz = curZ + Math.sin(angle) * SPD;
+        const distHome = Math.sqrt((nx - homeX) ** 2 + (nz - homeZ) ** 2);
+        if (distHome > wanderR) {
+          angle = Math.atan2(homeZ - curZ, homeX - curX) + (Math.random() - 0.5) * 0.5;
+        } else {
+          curX = nx; curZ = nz;
+        }
+        root.position.x = curX;
+        root.position.z = curZ;
+        root.rotation.y = -(angle - Math.PI / 2);
+
+        const swing = Math.sin(walkT) * 0.40;
+        legPivots[0].rotation.x =  swing;
+        legPivots[1].rotation.x = -swing;
+        legPivots[2].rotation.x = -swing;
+        legPivots[3].rotation.x =  swing;
+        tailPivot.rotation.z = Math.sin(walkT * 1.2) * 0.35;
       } catch(e) {}
     }
   };

@@ -331,11 +331,95 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   // ── Puzzle sign & floor marker ────────────────────────────────────────
   _buildPuzzleSign(scene, doorZ - 4.0, idx, accentColor);
   _buildFloorMarker(scene, doorZ - 2.2, accentColor);
+  _addRoomFurniture(scene, idx, baseZ, wallColor, accentColor);
 
   doors.push({ mesh: doorSlab, z: doorZ });
 }
 
-// ── Puzzle door sign ──────────────────────────────────────────────────────────
+// ── Room furniture ────────────────────────────────────────────────────────────────────────────────
+function _addRoomFurniture(scene, idx, baseZ, wallColor, accentColor) {
+  const hw = ROOM_WIDTH / 2;
+  const woodMat = new BABYLON.StandardMaterial("mFurWood_" + idx, scene);
+  woodMat.diffuseColor = new BABYLON.Color3(0.48, 0.30, 0.12);
+  const darkMat = new BABYLON.StandardMaterial("mFurDark_" + idx, scene);
+  darkMat.diffuseColor = new BABYLON.Color3(0.28, 0.18, 0.08);
+  const rugMat = new BABYLON.StandardMaterial("mFurRug_" + idx, scene);
+  rugMat.diffuseColor = new BABYLON.Color3(
+    accentColor.r * 0.5, accentColor.g * 0.35, accentColor.b * 0.25);
+
+  // Rug in centre of room
+  const rug = BABYLON.MeshBuilder.CreateBox("mRug_" + idx,
+    { width: 16, height: 0.04, depth: 20 }, scene);
+  rug.position = new BABYLON.Vector3(0, 0.12, baseZ + ROOM_LENGTH / 2);
+  rug.material = rugMat;
+
+  // Two bookshelves along side walls (inside pillar gaps)
+  for (const [sx, sz] of [[-(hw-2), baseZ+6], [(hw-2), baseZ+6],
+                           [-(hw-2), baseZ+16], [(hw-2), baseZ+16],
+                           [-(hw-2), baseZ+26], [(hw-2), baseZ+26]]) {
+    const shelf = BABYLON.MeshBuilder.CreateBox("mShelf_" + idx + sx + sz,
+      { width: 0.40, height: 4.0, depth: 3.0 }, scene);
+    shelf.position = new BABYLON.Vector3(sx, 2.0, sz);
+    shelf.material = woodMat;
+    // Books on shelf
+    for (let bi = 0; bi < 4; bi++) {
+      const bMat = new BABYLON.StandardMaterial("mBook_" + idx + sx + sz + bi, scene);
+      bMat.diffuseColor = new BABYLON.Color3(Math.random()*0.5+0.3, Math.random()*0.3, Math.random()*0.4+0.2);
+      const book = BABYLON.MeshBuilder.CreateBox("mBook_" + idx + sx + sz + bi,
+        { width: 0.35, height: 0.50, depth: 0.45 + Math.random()*0.4 }, scene);
+      book.material = bMat;
+      book.position = new BABYLON.Vector3(sx + (Math.random()-0.5)*0.3,
+        0.8 + bi * 0.95, sz);
+    }
+  }
+
+  // Central reading table in each room (skip throne)
+  if (idx !== 3) {
+    const table = BABYLON.MeshBuilder.CreateBox("mTable_" + idx,
+      { width: 6, height: 0.18, depth: 3 }, scene);
+    table.position = new BABYLON.Vector3(0, 1.0, baseZ + ROOM_LENGTH * 0.65);
+    table.material = woodMat;
+    for (const [tx, tz] of [[-2.6,-1.1],[2.6,-1.1],[-2.6,1.1],[2.6,1.1]]) {
+      const leg = BABYLON.MeshBuilder.CreateBox("mTLeg_" + idx + tx + tz,
+        { width: 0.18, height: 1.0, depth: 0.18 }, scene);
+      leg.position = new BABYLON.Vector3(tx, 0.50, baseZ + ROOM_LENGTH * 0.65 + tz);
+      leg.material = woodMat;
+    }
+    // Two chairs beside table
+    for (const cx of [-4.2, 4.2]) {
+      const seat = BABYLON.MeshBuilder.CreateBox("mChairS_" + idx + cx,
+        { width: 1.0, height: 0.12, depth: 1.0 }, scene);
+      seat.position = new BABYLON.Vector3(cx, 0.75, baseZ + ROOM_LENGTH * 0.65);
+      seat.material = woodMat;
+      const back = BABYLON.MeshBuilder.CreateBox("mChairB_" + idx + cx,
+        { width: 1.0, height: 1.0, depth: 0.12 }, scene);
+      back.position = new BABYLON.Vector3(cx, 1.25, baseZ + ROOM_LENGTH * 0.65 - 0.5);
+      back.material = woodMat;
+    }
+  }
+
+  // Bench near entrance
+  const bench = BABYLON.MeshBuilder.CreateBox("mBench_" + idx,
+    { width: 6, height: 0.14, depth: 0.9 }, scene);
+  bench.position = new BABYLON.Vector3(0, 0.60, baseZ + 5);
+  bench.material = woodMat;
+  for (const bx of [-2.2, 2.2]) {
+    const bLeg = BABYLON.MeshBuilder.CreateBox("mBenchLeg_" + idx + bx,
+      { width: 0.16, height: 0.60, depth: 0.80 }, scene);
+    bLeg.position = new BABYLON.Vector3(bx, 0.30, baseZ + 5);
+    bLeg.material = darkMat;
+  }
+
+  // Corner barrels
+  for (const [bx, bz] of [[-(hw-3), baseZ+4], [(hw-3), baseZ+4]]) {
+    for (let bi = 0; bi < 3; bi++) {
+      const barrel = BABYLON.MeshBuilder.CreateCylinder("mBarrel_" + idx + bx + bi,
+        { diameter: 1.0, height: 1.3, tessellation: 10 }, scene);
+      barrel.position = new BABYLON.Vector3(bx + bi * 1.15, 0.65, bz);
+      barrel.material = darkMat;
+    }
+  }
+} ──────────────────────────────────────────────────────────
 
 function _buildPuzzleSign(scene, z, idx, accentColor) {
   const postMat = new BABYLON.StandardMaterial("signPost_" + idx, scene);

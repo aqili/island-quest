@@ -9,7 +9,8 @@ const SAVE_KEY = "islandQuestSave";
 const DEFAULT_SAVE = {
   mathIsland:     { roomsCompleted: [false, false, false, false], crownEarned: false },
   languageIsland: { roomsCompleted: [false, false, false, false], crownEarned: false },
-  lettersIsland:  { crownEarned: false }
+  lettersIsland:  { crownEarned: false },
+  numbersIsland:   { crownEarned: false }
 };
 
 export const SaveManager = {

@@ -524,3 +524,107 @@ body {
   font-size: 1.3rem;
   color: #b3d9f5;
 }
+/* ===== Language button ===== */
+#btn-lang {
+  background: rgba(255,255,255,0.18);
+  border: 2px solid rgba(255,255,255,0.55);
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 14px;
+  font-size: 1.1rem;
+  font-family: inherit;
+  cursor: pointer;
+  pointer-events: all;
+  transition: background 0.2s;
+}
+#btn-lang:hover { background: rgba(255,255,255,0.32); }
+
+/* ===== Mobile enhancements (max-width: 640px) ===== */
+@media (max-width: 640px) {
+  /* HUD */
+  #hud { padding: 7px 12px; gap: 10px; }
+  #hud-location { font-size: 1.05rem; min-width: 130px; }
+  #hud-stars    { font-size: 1.05rem; }
+  #hud-crowns   { font-size: 1.15rem; }
+  #btn-respawn  { font-size: 1.0rem; padding: 6px 14px; }
+  #btn-lang     { font-size: 1.0rem; padding: 4px 10px; }
+
+  /* Puzzle panel */
+  .puzzle-panel {
+    padding: 20px 14px;
+    max-width: calc(100vw - 24px);
+    border-radius: 16px;
+  }
+  .puzzle-panel h2 { font-size: 1.45rem; margin-bottom: 10px; }
+  .puzzle-panel .question { font-size: 1.25rem; }
+  .puzzle-panel p { font-size: 1.0rem; }
+  .tagline { font-size: 1.0rem !important; }
+
+  /* Room banner / order hint */
+  .room-banner {
+    font-size: 1.45rem;
+    padding: 12px 20px;
+    max-width: 90vw;
+  }
+
+  /* Buttons in puzzles */
+  .btn { font-size: 1.1rem; min-height: 50px; min-width: 50px; }
+  .btn-word { min-width: 52px; height: auto; padding: 8px 14px; }
+
+  /* Word tile area */
+  .word-tiles { gap: 10px; }
+
+  /* Feedback text */
+  .feedback { font-size: 1.05rem; }
+
+  /* Victory panel */
+  .victory-emoji { font-size: 3.5rem; }
+  .victory-title { font-size: 1.6rem; }
+  .victory-sub   { font-size: 1.1rem; }
+
+  /* Controls hint re-position */
+  #controls-hint {
+    font-size: 0.90rem;
+    padding: 8px 14px;
+    bottom: 120px;
+  }
+}
+
+/* ===== Arabic RTL support ===== */
+html[dir="rtl"] body { direction: rtl; }
+
+html[dir="rtl"] #hud {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] #controls-hint {
+  left: auto;
+  right: 18px;
+}
+
+html[dir="rtl"] #joy-wrap {
+  left: auto;
+  right: 28px;
+}
+
+html[dir="rtl"] #btn-jump {
+  right: auto;
+  left: 30px;
+}
+
+html[dir="rtl"] .puzzle-panel {
+  text-align: right;
+}
+
+html[dir="rtl"] .word-tiles {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .room-banner {
+  direction: rtl;
+}
+
+html[dir="rtl"] #loading-screen .logo,
+html[dir="rtl"] #loading-screen .subtitle {
+  direction: rtl;
+}

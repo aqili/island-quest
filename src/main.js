@@ -15,8 +15,10 @@
 import { createWorldScene }        from "./scenes/WorldScene.js";
 import { createMathCastleScene }   from "./scenes/MathCastleScene.js";
 import { createLangCastleScene }   from "./scenes/LangCastleScene.js";
-import { createLettersCastleScene } from "./scenes/LettersCastleScene.js";
-import { SaveManager }             from "./utils/SaveManager.js";
+import { createLettersCastleScene }  from "./scenes/LettersCastleScene.js";
+import { createNumbersCastleScene }  from "./scenes/NumbersCastleScene.js";
+import { SaveManager }              from "./utils/SaveManager.js";
+import { initI18n, setLang, getLang }   from "./utils/i18n.js";
 
 // ── Engine setup ──────────────────────────────────────────────────────────────
 const canvas = document.getElementById("renderCanvas");
@@ -54,7 +56,8 @@ function goToWorld() {
       engine,
       () => goToMathCastle(),      // onEnterMath
       () => goToLangCastle(),      // onEnterLang
-      () => goToLettersCastle()    // onEnterLetters
+      () => goToLettersCastle(),   // onEnterLetters
+      () => goToNumbersCastle()    // onEnterNumbers
     )
   );
 }
@@ -77,6 +80,12 @@ function goToLettersCastle() {
   );
 }
 
+function goToNumbersCastle() {
+  switchScene(
+    createNumbersCastleScene(engine, () => goToWorld())
+  );
+}
+
 // ── Respawn button ────────────────────────────────────────────────────────────
 // Always visible in HUD; returns to world map at starting position
 document.getElementById("btn-respawn").addEventListener("click", () => {
@@ -86,10 +95,24 @@ document.getElementById("btn-respawn").addEventListener("click", () => {
   goToWorld();
 });
 
+// ── Language toggle button ────────────────────────────────────────────────────
+
+const btnLang = document.getElementById("btn-lang");
+if (btnLang) {
+  btnLang.addEventListener("click", () => {
+    const next = getLang() === "en" ? "ar" : "en";
+    setLang(next);
+    btnLang.textContent = next === "ar" ? "English" : "عربي";
+  });
+}
+
 // ── Boot ─────────────────────────────────────────────────────────────────────
 
 // Ensure save data exists
 SaveManager.load();
+
+// Initialise i18n (reads saved language from localStorage)
+initI18n();
 
 // Show a brief loading screen, then start the world
 const loadingScreen = _buildLoadingScreen();
