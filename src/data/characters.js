@@ -177,15 +177,17 @@ export const CHARACTER_REGISTRY = [
     preset:      null,
   },
 
-  // ── CDN Characters – ready to use, no download needed ────────────────────
+  // ── CDN Characters (jsDelivr — guaranteed CORS, no download needed) ─────────
+  // All URLs go through cdn.jsdelivr.net which always sends
+  // Access-Control-Allow-Origin: * so cross-origin loading never fails.
   {
     id:          "cdn_soldier",
     name:        "Soldier",
     source:      "cdn",
-    model:       "https://threejs.org/examples/models/gltf/Soldier.glb",
+    model:       "https://cdn.jsdelivr.net/gh/mrdoob/three.js/examples/models/gltf/Soldier.glb",
     thumbnail:   "💂",
     description: "An animated soldier (Three.js CC0)",
-    scale:       1.0,   // origin at feet; ~1.75 units tall at scale 1 — fits world correctly
+    scale:       1.0,
     yOffset:     0.0,
     animations:  { idle: "Idle", walk: "Walk", run: "Run", jump: "Walk" },
     preset:      null,
@@ -194,7 +196,7 @@ export const CHARACTER_REGISTRY = [
     id:          "cdn_cesiumman",
     name:        "Cesium Man",
     source:      "cdn",
-    model:       "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/CesiumMan/glTF-Binary/CesiumMan.glb",
+    model:       "https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets/Models/CesiumMan/glTF-Binary/CesiumMan.glb",
     thumbnail:   "🚶",
     description: "An animated walking figure (Khronos CC-BY 4.0)",
     scale:       0.90,
@@ -206,10 +208,10 @@ export const CHARACTER_REGISTRY = [
     id:          "cdn_fox",
     name:        "Fox",
     source:      "cdn",
-    model:       "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Fox/glTF-Binary/Fox.glb",
+    model:       "https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets/Models/Fox/glTF-Binary/Fox.glb",
     thumbnail:   "🦊",
     description: "An animated fox (Khronos CC-BY 4.0)",
-    scale:       0.018,
+    scale:       1.0,   // model geometry is already in metres; 0.018 made it invisible
     yOffset:     0.0,
     animations:  { idle: "Survey", walk: "Walk", run: "Run", jump: "Walk" },
     preset:      null,

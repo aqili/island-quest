@@ -22,18 +22,29 @@ export async function loadCharacterModel(scene, modelPath) {
   const BABYLON = window.BABYLON;
   if (!modelPath) return null;
 
-  // Split into folder and filename for SceneLoader.
-  // Works for both local paths ("assets/characters/kenney/robot.glb")
-  // and full CDN URLs ("https://threejs.org/examples/models/gltf/Soldier.glb").
-  const lastSlash = modelPath.lastIndexOf("/");
-  const folder    = modelPath.substring(0, lastSlash + 1);
-  const file      = modelPath.substring(lastSlash + 1);
+  // Determine rootUrl + filename.
+  //
+  // For ABSOLUTE CDN URLs (http/https): pass the full URL as `sceneFilename`
+  // with an empty rootUrl.  This is the only reliable way to load cross-origin
+  // GLBs in Babylon.js — splitting the URL and passing it as rootUrl+file can
+  // silently fail in certain Babylon.js versions.
+  //
+  // For LOCAL relative paths: split normally into folder + filename.
+  let rootUrl, filename;
+  if (/^https?:\/\//i.test(modelPath)) {
+    rootUrl  = "";
+    filename = modelPath;          // full URL e.g. "https://cdn.jsdelivr.net/..."
+  } else {
+    const lastSlash = modelPath.lastIndexOf("/");
+    rootUrl  = modelPath.substring(0, lastSlash + 1);   // "assets/characters/kenney/"
+    filename = modelPath.substring(lastSlash + 1);      // "robot.glb"
+  }
 
   try {
-    const result = await BABYLON.SceneLoader.ImportMeshAsync("", folder, file, scene);
+    const result = await BABYLON.SceneLoader.ImportMeshAsync("", rootUrl, filename, scene);
 
     if (!result || !result.meshes || result.meshes.length === 0) {
-      console.warn("[loadCharacterModel] No meshes returned for:", modelPath);
+      console.error("[loadCharacterModel] No meshes returned for:", modelPath);
       return null;
     }
 
@@ -43,8 +54,7 @@ export async function loadCharacterModel(scene, modelPath) {
       animationGroups: result.animationGroups ?? [],
     };
   } catch (err) {
-    // Model file missing — graceful fallback to procedural character
-    console.warn("[loadCharacterModel] Could not load model (file may not exist yet):", modelPath, err.message ?? err);
+    console.error("[loadCharacterModel] Failed to load:", modelPath, "\nReason:", err.message ?? err);
     return null;
   }
 }
