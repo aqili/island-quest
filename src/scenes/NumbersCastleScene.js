@@ -463,9 +463,9 @@ export function createNumbersCastleScene(engine, onExit) {
   const player = createPlayer(scene);
   player.mesh.position = new BABYLON.Vector3(0, 0.5, 2);
 
-  const camera = player.camera;
-  camera.setTarget(new BABYLON.Vector3(0, 1.2, 6));
-  camera.radius = DESIRED_RADIUS;
+  player.camera.radius           = DESIRED_RADIUS;
+  player.camera.lowerRadiusLimit = 3;
+  player.camera.upperRadiusLimit = 22;
 
   // ── Order hint ───────────────────────────────────────────────────────────────
   function _showOrderHint() {

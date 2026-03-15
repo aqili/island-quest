@@ -99,7 +99,9 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
 
   // ── Player ────────────────────────────────────────────────────────────────
   const player = createPlayer(scene);
-  player.mesh.position = new BABYLON.Vector3(0, 0.5, 0);
+  player.mesh.position    = new BABYLON.Vector3(0, 0.5, 0);
+  player.camera.alpha     = Math.PI / 2;   // face toward Letters Island (-Z)
+  player.camera.beta      = Math.PI / 2.3; // more horizontal view
 
   // ── HUD ───────────────────────────────────────────────────────────────────
   const hudLocation = document.getElementById("hud-location");

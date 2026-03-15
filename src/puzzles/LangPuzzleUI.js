@@ -8,6 +8,7 @@
  */
 
 import { spawnConfetti } from "./confetti.js";
+import { t } from "../utils/i18n.js";
 
 const overlay = document.getElementById("ui-overlay");
 
@@ -30,7 +31,7 @@ export function showPuzzle(puzzleData, roomType, onSuccess) {
 
   const tagline = document.createElement("p");
   tagline.className = "tagline";
-  tagline.textContent = "Almost there! 💪 You're doing amazing!";
+  tagline.textContent = t("puzzle.lang.tagline");
   panel.appendChild(tagline);
 
   const feedback = document.createElement("p");
@@ -63,7 +64,7 @@ function _buildSpelling(panel, puzzleData, feedback, onSuccess) {
 
   const scrambled = document.createElement("p");
   scrambled.className = "scrambled-hint";
-  scrambled.textContent = `Scrambled: ${puzzleData.scrambled}`;
+  scrambled.textContent = t("puzzle.scrambled_lbl") + " " + puzzleData.scrambled;
   panel.appendChild(scrambled);
 
   _attachTextInput(panel, puzzleData.word, feedback, onSuccess);
@@ -74,7 +75,7 @@ function _buildSpelling(panel, puzzleData, feedback, onSuccess) {
 function _buildUnscramble(panel, puzzleData, feedback, onSuccess) {
   const qEl = document.createElement("p");
   qEl.className = "question";
-  qEl.textContent = `Unscramble this word: 🔀`;
+  qEl.textContent = t("puzzle.unscramble_title");
   panel.appendChild(qEl);
 
   const scrambled = document.createElement("p");
@@ -84,7 +85,7 @@ function _buildUnscramble(panel, puzzleData, feedback, onSuccess) {
 
   const sub = document.createElement("p");
   sub.style.cssText = "color:#7f8c8d;font-size:1rem;margin-bottom:12px;";
-  sub.textContent = `Hint: ${puzzleData.hint}`;
+  sub.textContent = t("puzzle.hint_lbl") + " " + puzzleData.hint;
   panel.appendChild(sub);
 
   _attachTextInput(panel, puzzleData.word, feedback, onSuccess);
@@ -124,7 +125,7 @@ function _buildFillBlank(panel, puzzleData, feedback, onSuccess) {
 function _buildThrone(panel, puzzleData, feedback, onSuccess) {
   const title = document.createElement("p");
   title.className = "question";
-  title.textContent = "👑 Arrange the words into a sentence!";
+  title.textContent = t("puzzle.arrange_title");
   panel.appendChild(title);
 
   // Sentence builder display
@@ -167,7 +168,7 @@ function _buildThrone(panel, puzzleData, feedback, onSuccess) {
   // Check button
   const checkBtn = document.createElement("button");
   checkBtn.className = "btn btn-primary";
-  checkBtn.textContent = "Check Sentence! ✅";
+  checkBtn.textContent = t("puzzle.check_sentence");
   panel.appendChild(checkBtn);
 
   checkBtn.addEventListener("click", () => {
@@ -186,13 +187,13 @@ function _attachTextInput(panel, correctWord, feedback, onSuccess) {
   const input = document.createElement("input");
   input.type = "text";
   input.className = "puzzle-input";
-  input.placeholder = "Type the word…";
+  input.placeholder = t("puzzle.placeholder_word");
   input.autocomplete = "off";
   panel.appendChild(input);
 
   const btn = document.createElement("button");
   btn.className = "btn btn-primary";
-  btn.textContent = "Check Answer! ✅";
+  btn.textContent = t("puzzle.check");
   panel.appendChild(btn);
 
   const check = () => {
@@ -212,7 +213,7 @@ function _attachTextInput(panel, correctWord, feedback, onSuccess) {
 }
 
 function _showCorrect(feedback, onSuccess) {
-  feedback.textContent = "Correct! 🎉 Great job!";
+  feedback.textContent = t("puzzle.correct");
   feedback.className = "feedback correct";
   spawnConfetti();
   setTimeout(() => {
@@ -222,7 +223,7 @@ function _showCorrect(feedback, onSuccess) {
 }
 
 function _showWrong(feedback) {
-  feedback.textContent = "Try Again! 💪 You can do it!";
+  feedback.textContent = t("puzzle.wrong");
   feedback.className = "feedback wrong";
   feedback.style.animation = "none";
   requestAnimationFrame(() => { feedback.style.animation = ""; });

@@ -8,6 +8,7 @@
  */
 
 import { spawnConfetti } from "./confetti.js";
+import { t } from "../utils/i18n.js";
 
 const overlay = document.getElementById("ui-overlay");
 
@@ -33,7 +34,7 @@ export function showPuzzle(puzzleData, roomType, onSuccess) {
   // Tagline
   const tagline = document.createElement("p");
   tagline.className = "tagline";
-  tagline.textContent = "You can do it! 🌟 Think carefully!";
+  tagline.textContent = t("puzzle.math.tagline");
   panel.appendChild(tagline);
 
   // Question text
@@ -66,13 +67,13 @@ function _buildTextInput(panel, puzzleData, feedback, onSuccess) {
   const input = document.createElement("input");
   input.type = "text";
   input.className = "puzzle-input";
-  input.placeholder = "Type your answer…";
+  input.placeholder = t("puzzle.placeholder");
   input.autocomplete = "off";
   panel.insertBefore(input, feedback);
 
   const btn = document.createElement("button");
   btn.className = "btn btn-primary";
-  btn.textContent = "Check Answer! ✅";
+  btn.textContent = t("puzzle.check");
   panel.appendChild(btn);
 
   const check = () => {
@@ -114,7 +115,7 @@ function _buildChoiceButtons(panel, puzzleData, feedback, onSuccess) {
 }
 
 function _showCorrect(feedback, onSuccess) {
-  feedback.textContent = "Correct! 🎉 Great job!";
+  feedback.textContent = t("puzzle.correct");
   feedback.className = "feedback correct";
   spawnConfetti();
   setTimeout(() => {
@@ -124,7 +125,7 @@ function _showCorrect(feedback, onSuccess) {
 }
 
 function _showWrong(feedback) {
-  feedback.textContent = "Try Again! 💪 You can do it!";
+  feedback.textContent = t("puzzle.wrong");
   feedback.className = "feedback wrong";
   // Re-trigger animation
   feedback.style.animation = "none";

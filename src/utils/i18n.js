@@ -36,6 +36,14 @@ const strings = {
     "numbers.instruction": "Click the numbers from smallest to largest.",
     "numbers.correct":     "🎉 Perfect order!",
     "numbers.wrong":       "❌ Wrong order — try again!",
+    "puzzle.math.tagline":   "You can do it! 🌟 Think carefully!",
+    "puzzle.lang.tagline":   "Almost there! 💪 You're doing amazing!",
+    "puzzle.placeholder":    "Type your answer…",
+    "puzzle.placeholder_word": "Type the word…",
+    "puzzle.scrambled_lbl":  "Scrambled:",
+    "puzzle.unscramble_title": "Unscramble this word: 🔀",
+    "puzzle.check_sentence": "Check Sentence! ✅",
+    "puzzle.arrange_title":  "👑 Arrange the words into a sentence!",
   },
   ar: {
     "loading.title":       "مغامرة الجزيرة",
@@ -67,6 +75,14 @@ const strings = {
     "numbers.instruction": "اضغط على الأرقام من الأصغر إلى الأكبر.",
     "numbers.correct":     "🎉 ترتيب صحيح!",
     "numbers.wrong":       "❌ ترتيب خاطئ — حاول مجدداً!",
+    "puzzle.math.tagline":   "أنت تستطيع! 🌟 فكّر جيداً!",
+    "puzzle.lang.tagline":   "أوشكت! 💪 أداء رائع!",
+    "puzzle.placeholder":    "اكتب إجابتك...",
+    "puzzle.placeholder_word": "اكتب الكلمة...",
+    "puzzle.scrambled_lbl":  "الحروف المبعثرة:",
+    "puzzle.unscramble_title": "رتّب هذه الكلمة: 🔀",
+    "puzzle.check_sentence": "تحقق من الجملة! ✅",
+    "puzzle.arrange_title":  "👑 رتّب الكلمات في جملة!",
   }
 };
 
