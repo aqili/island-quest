@@ -540,22 +540,39 @@ function _buildDoorSign(scene, idx, cx, dz, accentColor) {
     cyl("sPostC_" + idx + dx, scene, 0.20, 3.4, cx + dx, 1.7, dz, postMat);
   }
 
-  const bdt = new BABYLON.DynamicTexture("signTex_" + idx, { width: 512, height: 224 }, scene);
+  const W = 512, H = 224;
+  const bdt = new BABYLON.DynamicTexture("signTex_" + idx, { width: W, height: H }, scene);
   const ctx = bdt.getContext();
 
-  // Pre-flip the canvas so BabylonJS's natural UV-mirroring on a box cancels it out
+  // Each room's box-face shows the texture with a different orientation depending on which
+  // face the player sees.  Apply the exact pre-flip the user observed is needed:
+  //   Room 0 (idx=0): vertical flip only
+  //   Room 1 (idx=1): horizontal flip only
+  //   Room 2 (idx=2): vertical flip only
+  //   Room 3 (idx=3): both horizontal + vertical
   ctx.save();
-  ctx.translate(512, 0);
-  ctx.scale(-1, 1);
+  if (idx === 0 || idx === 2) {
+    // vertical flip
+    ctx.translate(0, H);
+    ctx.scale(1, -1);
+  } else if (idx === 1) {
+    // horizontal flip
+    ctx.translate(W, 0);
+    ctx.scale(-1, 1);
+  } else {
+    // idx === 3: both flips
+    ctx.translate(W, H);
+    ctx.scale(-1, -1);
+  }
 
-  ctx.fillStyle = "#1a0e04"; ctx.fillRect(0, 0, 512, 224);
-  ctx.strokeStyle = "#d4a017"; ctx.lineWidth = 6; ctx.strokeRect(6, 6, 500, 212);
+  ctx.fillStyle = "#1a0e04"; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "#d4a017"; ctx.lineWidth = 6; ctx.strokeRect(6, 6, W - 12, H - 12);
   ctx.fillStyle = "#FFD700"; ctx.font = "bold 60px Arial"; ctx.textAlign = "center";
-  ctx.fillText("ROOM " + (idx + 1), 256, 76);
+  ctx.fillText("ROOM " + (idx + 1), W / 2, 76);
   ctx.fillStyle = "#FF8800"; ctx.font = "bold 36px Arial";
-  ctx.fillText((ROOMS[idx].name.split("\u2014")[1] || ROOMS[idx].name).trim(), 256, 136);
+  ctx.fillText((ROOMS[idx].name.split("\u2014")[1] || ROOMS[idx].name).trim(), W / 2, 136);
   ctx.fillStyle = "#cccccc"; ctx.font = "26px Arial";
-  ctx.fillText("Walk to the door to play!", 256, 192);
+  ctx.fillText("Walk to the door to play!", W / 2, 192);
 
   ctx.restore();
   bdt.update();
