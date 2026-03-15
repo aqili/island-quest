@@ -9,6 +9,7 @@
 
 import { spawnConfetti } from "./confetti.js";
 import { t } from "../utils/i18n.js";
+import { SoundManager } from "../utils/SoundManager.js";
 
 const overlay = document.getElementById("ui-overlay");
 
@@ -216,6 +217,7 @@ function _showCorrect(feedback, onSuccess) {
   feedback.textContent = t("puzzle.correct");
   feedback.className = "feedback correct";
   spawnConfetti();
+  SoundManager.playCorrect();
   setTimeout(() => {
     hidePuzzle();
     onSuccess();
@@ -225,6 +227,7 @@ function _showCorrect(feedback, onSuccess) {
 function _showWrong(feedback) {
   feedback.textContent = t("puzzle.wrong");
   feedback.className = "feedback wrong";
+  SoundManager.playWrong();
   feedback.style.animation = "none";
   requestAnimationFrame(() => { feedback.style.animation = ""; });
 }

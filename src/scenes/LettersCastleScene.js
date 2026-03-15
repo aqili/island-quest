@@ -8,6 +8,7 @@
 import { createPlayer }   from "../entities/Player.js";
 import { LETTER_WORDS }   from "../data/lettersPuzzles.js";
 import { SaveManager }    from "../utils/SaveManager.js";
+import { t }              from "../utils/i18n.js";
 
 export function createLettersCastleScene(engine, onExit) {
   const BABYLON = window.BABYLON;
@@ -808,7 +809,7 @@ export function createLettersCastleScene(engine, onExit) {
           _onWordCorrect();
         } else {
           feedback.className  = "feedback wrong";
-          feedback.textContent = "❌ Not quite — try again!";
+          feedback.textContent = t("letters.wrong");
           selected.forEach(item => {
             item.btn.disabled = false;
             item.btn.classList.remove("used");
@@ -841,7 +842,7 @@ export function createLettersCastleScene(engine, onExit) {
     const closeBtn = document.createElement("button");
     closeBtn.className  = "btn btn-primary";
     closeBtn.style.background = "#555";
-    closeBtn.textContent = "Close";
+    closeBtn.textContent = t("letters.close");
     closeBtn.onclick = () => { _clearOverlay(); assemblyOpen = false; };
     panel.appendChild(closeBtn);
 
@@ -873,7 +874,7 @@ export function createLettersCastleScene(engine, onExit) {
 
     const exitBtn = document.createElement("button");
     exitBtn.className  = "btn btn-primary";
-    exitBtn.textContent = "🏠 Return to World Map";
+    exitBtn.textContent = t("letters.return");
     exitBtn.onclick = () => { _clearOverlay(); if (typeof onExit === "function") onExit(); };
     panel.appendChild(exitBtn);
     overlay.appendChild(panel);
@@ -904,7 +905,7 @@ export function createLettersCastleScene(engine, onExit) {
     _lastOrderHintTime = now;
     const b = document.createElement("div");
     b.className  = "room-banner order-hint";
-    b.textContent = `⚠️ Collect the letters in alphabetical order!`;
+    b.textContent = t("letters.order_hint");
     document.body.appendChild(b);
     setTimeout(() => { if (b.parentNode) b.parentNode.removeChild(b); }, 2500);
   }
@@ -913,7 +914,7 @@ export function createLettersCastleScene(engine, onExit) {
   function _showCollectBanner(letter) {
     const b = document.createElement("div");
     b.className  = "room-banner";
-    b.textContent = `✨ Collected letter: ${letter}  (${collectedLetters.length}/6)`;
+    b.textContent = t("letters.collected").replace("{l}", letter).replace("{c}", collectedLetters.length);
     document.body.appendChild(b);
     setTimeout(() => { if (b.parentNode) b.parentNode.removeChild(b); }, 2500);
   }

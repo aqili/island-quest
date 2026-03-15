@@ -9,6 +9,8 @@ import { createPlayer }    from "../entities/Player.js";
 import { NUMBER_PUZZLES }  from "../data/numberPuzzles.js";
 import { SaveManager }     from "../utils/SaveManager.js";
 import { spawnConfetti }  from "../puzzles/confetti.js";
+import { t }              from "../utils/i18n.js";
+import { SoundManager }   from "../utils/SoundManager.js";
 
 export function createNumbersCastleScene(engine, onExit) {
   const BABYLON = window.BABYLON;
@@ -128,7 +130,7 @@ export function createNumbersCastleScene(engine, onExit) {
     rw.position.set(hw + 0.2, cy, midZ);
     rw.material = wallMat;
 
-    // Entry (back) wall for room 0
+    // Entry (back) wall for room 0 — exit portal
     if (r === 0) {
       const bk = BABYLON.MeshBuilder.CreateBox(`nBk_${r}`,
         { width: ROOM_WIDTH + 0.8, height: ROOM_HEIGHT, depth: 0.4 }, scene);
@@ -146,6 +148,44 @@ export function createNumbersCastleScene(engine, onExit) {
         { diameterX: 4.0, diameterY: 1.4, diameterZ: 0.45, segments: 8 }, scene);
       exitArch.position.set(0, 5.2, baseZ);
       exitArch.material = edm;
+    }
+
+    // Entrance arch for the last room — castle gate where player enters
+    if (r === NUM_ROOMS - 1) {
+      const entZ = baseZ + ROOM_LENGTH;
+      const enm = new BABYLON.StandardMaterial("nEntMat", scene);
+      enm.diffuseColor  = new BABYLON.Color3(0.22, 0.32, 0.65);
+      enm.emissiveColor = new BABYLON.Color3(0.04, 0.08, 0.20);
+
+      // Left and right pillar segments
+      [[-11, 18], [11, 18]].forEach(([dx, dw], j) => {
+        const seg = BABYLON.MeshBuilder.CreateBox(`nEntSeg_${j}`,
+          { width: dw, height: ROOM_HEIGHT, depth: 0.5 }, scene);
+        seg.position.set(dx, cy, entZ);
+        seg.material = stoneMat;
+      });
+      const topFill = BABYLON.MeshBuilder.CreateBox("nEntTop",
+        { width: 4.2, height: 2.6, depth: 0.5 }, scene);
+      topFill.position.set(0, 5.7, entZ);
+      topFill.material = stoneMat;
+
+      // Gold arch above entrance
+      const archMat = new BABYLON.StandardMaterial("nEntArch", scene);
+      archMat.diffuseColor  = new BABYLON.Color3(0.85, 0.70, 0.10);
+      archMat.emissiveColor = new BABYLON.Color3(0.30, 0.22, 0.00);
+      const arch = BABYLON.MeshBuilder.CreateSphere("nEntArchM",
+        { diameterX: 4.2, diameterY: 1.6, diameterZ: 0.5, segments: 8 }, scene);
+      arch.position.set(0, 4.6, entZ);
+      arch.material = archMat;
+
+      // Welcome banner
+      const bannerMat = new BABYLON.StandardMaterial("nEntBanner", scene);
+      bannerMat.diffuseColor  = new BABYLON.Color3(0.82, 0.67, 0.10);
+      bannerMat.emissiveColor = new BABYLON.Color3(0.25, 0.18, 0.00);
+      const banner = BABYLON.MeshBuilder.CreateBox("nEntBannerM",
+        { width: 5.0, height: 0.5, depth: 0.15 }, scene);
+      banner.position.set(0, 6.5, entZ);
+      banner.material = bannerMat;
     }
 
     // Door wall with arch between rooms
@@ -334,12 +374,27 @@ export function createNumbersCastleScene(engine, onExit) {
     const numMat = new BABYLON.StandardMaterial(`nNumMat_${index}`, scene);
     try {
       const dt = new BABYLON.DynamicTexture(`nNumTex_${index}`, { width: 128, height: 128 }, scene, false);
-      dt.drawText(String(num), null, 90, "bold 72px Arial", "#000000", "transparent", true);
+      const ctx = dt.getContext();
+      // Gold background
+      ctx.fillStyle = "#FFD700";
+      ctx.fillRect(0, 0, 128, 128);
+      // Border
+      ctx.strokeStyle = "#8B6914";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(4, 4, 120, 120);
+      // Number text
+      ctx.fillStyle = "#1a1050";
+      ctx.font = "bold 78px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(num), 64, 68);
+      dt.update();
       numMat.diffuseTexture  = dt;
       numMat.emissiveTexture = dt;
-      numMat.emissiveColor   = new BABYLON.Color3(0.5, 0.4, 0.0);
+      numMat.emissiveColor   = new BABYLON.Color3(0.9, 0.75, 0.0);
+      numMat.backFaceCulling = false;
     } catch(e) {
-      numMat.diffuseColor = new BABYLON.Color3(0.9, 0.7, 0.0);
+      numMat.diffuseColor = new BABYLON.Color3(0.95, 0.75, 0.0);
     }
 
     const face = BABYLON.MeshBuilder.CreateBox(`nFace_${index}`,
@@ -461,7 +516,8 @@ export function createNumbersCastleScene(engine, onExit) {
 
   // ── Player ──────────────────────────────────────────────────────────────────
   const player = createPlayer(scene);
-  player.mesh.position = new BABYLON.Vector3(0, 0.5, 2);
+  player.mesh.position = new BABYLON.Vector3(0, 0.5, NUM_ROOMS * ROOM_LENGTH - 2);
+  player.camera.alpha  = Math.PI / 2; // face toward vault (-Z)
 
   player.camera.radius           = DESIRED_RADIUS;
   player.camera.lowerRadiusLimit = 3;
@@ -474,7 +530,7 @@ export function createNumbersCastleScene(engine, onExit) {
     _lastOrderHintTime = now;
     const b = document.createElement("div");
     b.className  = "room-banner order-hint";
-    b.textContent = "⚠️ Collect the numbers from smallest to largest!";
+    b.textContent = t("numbers.order_hint");
     document.body.appendChild(b);
     setTimeout(() => { if (b.parentNode) b.parentNode.removeChild(b); }, 2500);
   }
@@ -483,7 +539,7 @@ export function createNumbersCastleScene(engine, onExit) {
   function _showCollectBanner(num) {
     const b = document.createElement("div");
     b.className  = "room-banner";
-    b.textContent = `✨ Collected: ${num}  (${collectedNumbers.length}/${TARGET_NUMS.length})`;
+    b.textContent = t("numbers.collected").replace("{n}", num).replace("{c}", collectedNumbers.length).replace("{t}", TARGET_NUMS.length);
     document.body.appendChild(b);
     setTimeout(() => { if (b.parentNode) b.parentNode.removeChild(b); }, 2500);
   }
@@ -499,18 +555,18 @@ export function createNumbersCastleScene(engine, onExit) {
     panel.style.maxWidth = "580px";
 
     const title = document.createElement("h2");
-    title.textContent = "🔒 Arrange the Numbers!";
+    title.textContent = t("numbers.vault_title");
     panel.appendChild(title);
 
     const sub = document.createElement("p");
     sub.className = "tagline";
-    sub.textContent = "Click the numbers from smallest (1st) to largest (last).";
+    sub.textContent = t("numbers.vault_sub");
     panel.appendChild(sub);
 
     const hint = document.createElement("p");
     hint.className   = "tagline";
     hint.style.color = "#2980b9";
-    hint.textContent = `Hint: ${HINT_TEXT}`;
+    hint.textContent = `${t("numbers.vault_hint")} ${HINT_TEXT}`;
     panel.appendChild(hint);
 
     const selected  = [];
@@ -532,11 +588,13 @@ export function createNumbersCastleScene(engine, onExit) {
         }
         if (ok) {
           feedback.className  = "feedback correct";
-          feedback.textContent = "🎉 Perfect order!";
+          feedback.textContent = t("numbers.correct");
+          SoundManager.playCorrect();
           setTimeout(() => _onVaultCorrect(), 800);
         } else {
           feedback.className  = "feedback wrong";
-          feedback.textContent = "❌ Not ascending — try again!";
+          feedback.textContent = t("numbers.not_asc");
+          SoundManager.playWrong();
           selected.forEach(s => { s.btn.disabled = false; s.btn.classList.remove("used"); });
           selected.length = 0;
           feedback.textContent = "";
@@ -567,7 +625,7 @@ export function createNumbersCastleScene(engine, onExit) {
     const closeBtn = document.createElement("button");
     closeBtn.className  = "btn btn-primary";
     closeBtn.style.background = "#555";
-    closeBtn.textContent = "Close";
+    closeBtn.textContent = t("puzzle.close");
     closeBtn.onclick = () => { _clearOverlay(); vaultOpen = false; };
     panel.appendChild(closeBtn);
 
@@ -589,6 +647,7 @@ export function createNumbersCastleScene(engine, onExit) {
     overlay.innerHTML = "";
     overlay.classList.add("active");
     spawnConfetti();
+    SoundManager.playVictory();
 
     const panel = document.createElement("div");
     panel.className = "puzzle-panel victory-panel";
@@ -600,18 +659,18 @@ export function createNumbersCastleScene(engine, onExit) {
 
     const title = document.createElement("div");
     title.className   = "victory-title";
-    title.textContent = `Amazing! You solved ${puzzleData.name}!`;
+    title.textContent = `${t("victory.title")} ${puzzleData.name}!`;
     panel.appendChild(title);
 
     const sub = document.createElement("div");
     sub.className   = "victory-sub";
-    sub.textContent = "You earned the Numbers Crown!";
+    sub.textContent = t("numbers.victory_sub");
     panel.appendChild(sub);
 
     const backBtn = document.createElement("button");
     backBtn.className   = "btn btn-primary";
     backBtn.style.marginTop = "20px";
-    backBtn.textContent = "🌍 Back to World";
+    backBtn.textContent = t("victory.back");
     backBtn.onclick     = () => { _clearOverlay(); if (typeof onExit === "function") onExit(); };
     panel.appendChild(backBtn);
 
@@ -661,6 +720,7 @@ export function createNumbersCastleScene(engine, onExit) {
               collectedNumbers.push(tile.num);
               tile.root.setEnabled(false);
               _showCollectBanner(tile.num);
+              SoundManager.playCollect();
               _updateHUD();
               if (collectedNumbers.length === TARGET_NUMS.length && !vaultOpen) {
                 setTimeout(() => _showVaultUI(), 800);

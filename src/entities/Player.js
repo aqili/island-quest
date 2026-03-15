@@ -8,21 +8,31 @@
 export function createPlayer(scene) {
   const BABYLON = window.BABYLON;
 
+  // ── Load avatar config from localStorage ─────────────────────────────────
+  let _avatar = {};
+  try { _avatar = JSON.parse(localStorage.getItem("iq_avatar") || "{}"); } catch(e) {}
+
+  function _col(key, r, g, b) {
+    const saved = _avatar[key];
+    if (saved && saved.length === 3) return new BABYLON.Color3(saved[0], saved[1], saved[2]);
+    return new BABYLON.Color3(r, g, b);
+  }
+
   // ── Materials ────────────────────────────────────────────────────────────
   const skinMat = new BABYLON.StandardMaterial("skinMat", scene);
-  skinMat.diffuseColor = new BABYLON.Color3(1.0, 0.82, 0.60);
+  skinMat.diffuseColor = _col("skin",  1.0, 0.82, 0.60);
 
   const shirtMat = new BABYLON.StandardMaterial("shirtMat", scene);
-  shirtMat.diffuseColor = new BABYLON.Color3(0.18, 0.52, 0.92); // blue shirt
+  shirtMat.diffuseColor = _col("shirt", 0.18, 0.52, 0.92);
 
   const pantsMat = new BABYLON.StandardMaterial("pantsMat", scene);
-  pantsMat.diffuseColor = new BABYLON.Color3(0.25, 0.22, 0.68); // dark blue pants
+  pantsMat.diffuseColor = _col("pants", 0.25, 0.22, 0.68);
 
   const shoesMat = new BABYLON.StandardMaterial("shoesMat", scene);
-  shoesMat.diffuseColor = new BABYLON.Color3(0.15, 0.10, 0.05); // dark brown shoes
+  shoesMat.diffuseColor = new BABYLON.Color3(0.15, 0.10, 0.05);
 
   const hairMat = new BABYLON.StandardMaterial("hairMat", scene);
-  hairMat.diffuseColor = new BABYLON.Color3(0.28, 0.16, 0.05); // brown hair
+  hairMat.diffuseColor = _col("hair", 0.28, 0.16, 0.05);
 
   // ── Root (invisible pivot) ──────────────────────────────────────────────
   const root = new BABYLON.TransformNode("playerRoot", scene);

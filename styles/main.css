@@ -628,3 +628,186 @@ html[dir="rtl"] #loading-screen .logo,
 html[dir="rtl"] #loading-screen .subtitle {
   direction: rtl;
 }
+
+/* ===== Avatar Selector Screen ===== */
+#avatar-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(160deg, #0e3a6e 0%, #1a6fa8 50%, #0b2a52 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 600;
+  transition: opacity 0.5s;
+}
+#avatar-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.avatar-card {
+  background: rgba(255,255,255,0.10);
+  border: 2px solid rgba(255,255,255,0.22);
+  border-radius: 24px;
+  padding: 28px 32px;
+  max-width: 680px;
+  width: calc(100vw - 32px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.avatar-title {
+  color: #ffe066;
+  font-size: 2rem;
+  text-align: center;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+  margin: 0;
+}
+
+.avatar-body {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+/* ── CSS character preview ── */
+.avatar-preview {
+  position: relative;
+  width: 90px;
+  height: 200px;
+  flex-shrink: 0;
+  margin: 0 auto;
+}
+.av-hair {
+  position: absolute;
+  left: 27px; top: 0px;
+  width: 36px; height: 12px;
+  border-radius: 4px 4px 0 0;
+  background: #4a2a0a;
+}
+.av-head {
+  position: absolute;
+  left: 24px; top: 10px;
+  width: 42px; height: 42px;
+  border-radius: 8px;
+  background: #f5c89a;
+}
+.av-torso {
+  position: absolute;
+  left: 22px; top: 54px;
+  width: 46px; height: 52px;
+  border-radius: 6px;
+  background: #2885ec;
+}
+.av-arm {
+  position: absolute;
+  top: 56px;
+  width: 18px; height: 50px;
+  border-radius: 6px;
+  background: #2885ec;
+}
+.av-larm { left: 5px; }
+.av-rarm { left: 67px; }
+.av-leg {
+  position: absolute;
+  top: 108px;
+  width: 20px; height: 58px;
+  border-radius: 6px;
+  background: #2a2aaa;
+}
+.av-lleg { left: 23px; }
+.av-rleg { left: 47px; }
+
+/* ── Palette options ── */
+.avatar-options {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 220px;
+}
+
+.avatar-section {}
+
+.avatar-label {
+  color: #b3d9f5;
+  font-size: 1.0rem;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.avatar-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+.swatch:hover { transform: scale(1.18); }
+.swatch.selected {
+  border-color: #ffe066;
+  transform: scale(1.18);
+  box-shadow: 0 0 0 3px rgba(255,224,102,0.45);
+}
+
+/* ── Sound row + Play button ── */
+.avatar-sound-row {
+  display: flex;
+  justify-content: center;
+}
+.btn-sound {
+  background: rgba(255,255,255,0.14);
+  border: 2px solid rgba(255,255,255,0.35);
+  color: #fff;
+  border-radius: 12px;
+  padding: 7px 20px;
+  font-size: 1.05rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-sound:hover { background: rgba(255,255,255,0.25); }
+
+.btn-play {
+  background: linear-gradient(135deg, #f7c948 0%, #e88a10 100%);
+  color: #1a1a1a;
+  border: none;
+  border-radius: 16px;
+  padding: 14px 0;
+  font-size: 1.6rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 18px rgba(232,138,16,0.50);
+  width: 100%;
+  letter-spacing: 0.04em;
+}
+.btn-play:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 24px rgba(232,138,16,0.70);
+}
+
+/* Mobile adjustments for avatar screen */
+@media (max-width: 540px) {
+  .avatar-card  { padding: 20px 16px; }
+  .avatar-title { font-size: 1.5rem; }
+  .avatar-body  { gap: 16px; flex-direction: column; align-items: center; }
+  .swatch       { width: 30px; height: 30px; }
+}
+
+/* RTL adjustments for avatar screen */
+html[dir="rtl"] .avatar-label  { text-align: right; }
+html[dir="rtl"] .avatar-swatches { flex-direction: row-reverse; }
