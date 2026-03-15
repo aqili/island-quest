@@ -448,9 +448,6 @@ function _buildPalmTree(scene, x, z, leafColor) {
 
 function _buildSign(scene, x, z, text, color) {
   // Post
-  const post = BABYLON.MeshBuilder.CreateBox("signPost_" + x,
-    { width: 0.3, height: 4, depth: 0.3 }, scene);
-  post.position = new BABYLON.Vector3(x, 2, z);
   const postMat = new BABYLON.StandardMaterial("postMat_" + x, scene);
   postMat.diffuseColor = new BABYLON.Color3(0.45, 0.28, 0.1);
 
