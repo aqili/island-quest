@@ -509,16 +509,24 @@ function _buildSign(scene, x, z, text, color) {
   post.material = postMat;
 
   const board = BABYLON.MeshBuilder.CreateBox("signBoard_" + x,
-    { width: 3.0, height: 0.85, depth: 0.14 }, scene);
-  board.position = new BABYLON.Vector3(x, 2.3, z);
-  const boardMat = new BABYLON.StandardMaterial("boardMat_" + x, scene);
-  boardMat.diffuseColor = color;
-  board.material = boardMat;
+    { width: 4.2, height: 1.4, depth: 0.14 }, scene);
+  board.position = new BABYLON.Vector3(x, 2.6, z);
 
-  const dt = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 128 }, scene);
-  dt.drawText(text, null, 90, "bold 48px Fredoka One", "#2c3e50", "transparent", true);
-  dt.uScale = -1;   // fix horizontal mirror on box face
+  const plainText = text.replace(/[^\x00-\x7F]/g, "").trim();
+  let subtitle = "Enter the castle!";
+  if (text.includes("Math"))     subtitle = "Solve math puzzles inside";
+  if (text.includes("Language")) subtitle = "Answer language questions";
+  if (text.includes("Letters"))  subtitle = "Collect letters in order";
+
+  const dt = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 160 }, scene);
+  dt.drawText(plainText, null, 68,  "bold 50px Arial", "#000000", "transparent", true, false);
+  dt.drawText(subtitle,  null, 130, "28px Arial",      "#222222", null,          true, true);
+  dt.uScale = -1;
+
+  const boardMat = new BABYLON.StandardMaterial("boardMat_" + x, scene);
+  boardMat.diffuseColor   = color;
   boardMat.diffuseTexture = dt;
+  board.material = boardMat;
 }
 
 // ── Letters Island ────────────────────────────────────────────────────────────

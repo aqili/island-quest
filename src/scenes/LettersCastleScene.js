@@ -25,20 +25,28 @@ export function createLettersCastleScene(engine, onExit) {
   const TARGET_WORD    = puzzleData.word;
   const HINT_TEXT      = puzzleData.hint;
   const TARGET_LETTERS = puzzleData.letters.slice();
+  // Letters sorted A-Z — the required collection order
+  const ALPHA_ORDER    = TARGET_WORD.toUpperCase().split('').sort().join('');
 
   // ── State ───────────────────────────────────────────────────────────────────
   let currentRoom      = 0;
   let collectedLetters = [];
   let letterTiles      = [];
   let crownEarned      = false;
+  let _lastOrderHintTime = 0;
+  const torchLights    = [];
+  const doorBeacons    = [];
+  let assemblyBoxMesh  = null;
+  const ASSEMBLY_Z     = ROOM_LENGTH * 0.60;   // 18 — middle of room 0
+  const ASSEMBLY_POS   = new BABYLON.Vector3(0, 0, ASSEMBLY_Z);
 
   // ── Scene setup ─────────────────────────────────────────────────────────────
   scene.clearColor = new BABYLON.Color4(0.06, 0.03, 0.10, 1);
 
   const ambient = new BABYLON.HemisphericLight("amb", new BABYLON.Vector3(0, 1, 0), scene);
-  ambient.intensity   = 0.55;
-  ambient.diffuse     = new BABYLON.Color3(0.80, 0.75, 1.0);
-  ambient.groundColor = new BABYLON.Color3(0.15, 0.08, 0.25);
+  ambient.intensity   = 1.1;
+  ambient.diffuse     = new BABYLON.Color3(0.90, 0.82, 1.0);
+  ambient.groundColor = new BABYLON.Color3(0.30, 0.18, 0.50);
 
   // ── Shared materials ────────────────────────────────────────────────────────
   function stdMat(name, r, g, b, emR, emG, emB) {
@@ -48,10 +56,10 @@ export function createLettersCastleScene(engine, onExit) {
     return m;
   }
 
-  const wallMat    = stdMat("wallMat",    0.20, 0.11, 0.32);
-  const floorMat   = stdMat("floorMat",   0.15, 0.09, 0.26);
-  const ceilMat    = stdMat("ceilMat",    0.12, 0.07, 0.20);
-  const stoneMat   = stdMat("stoneMat",   0.30, 0.26, 0.40);
+  const wallMat    = stdMat("wallMat",    0.22, 0.48, 0.44);
+  const floorMat   = stdMat("floorMat",   0.12, 0.32, 0.30);
+  const ceilMat    = stdMat("ceilMat",    0.08, 0.22, 0.20);
+  const stoneMat   = stdMat("stoneMat",   0.28, 0.52, 0.50);
   const goldMat    = stdMat("goldMat",    0.82, 0.67, 0.10, 0.22, 0.14, 0.00);
   const tealMat    = stdMat("tealMat",    0.10, 0.75, 0.65, 0.02, 0.28, 0.22);
   const crystalMat = stdMat("crystalMat", 0.45, 0.10, 0.80, 0.20, 0.02, 0.48);
@@ -62,9 +70,9 @@ export function createLettersCastleScene(engine, onExit) {
     try {
       const dt = new BABYLON.DynamicTexture(name + "_dt", { width: 256, height: 256 }, scene, false);
       const ctx = dt.getContext();
-      ctx.fillStyle = "#1a0a30";
+      ctx.fillStyle = "#0a2e28";
       ctx.fillRect(0, 0, 256, 256);
-      ctx.strokeStyle = "#2a1848";
+      ctx.strokeStyle = "#124038";
       ctx.lineWidth = 2;
       for (let i = 0; i <= 256; i += 64) {
         ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
@@ -75,7 +83,7 @@ export function createLettersCastleScene(engine, onExit) {
       mat.diffuseTexture.uScale = ROOM_WIDTH  / 2.5;
       mat.diffuseTexture.vScale = ROOM_LENGTH / 2.5;
     } catch(e) {
-      mat.diffuseColor = new BABYLON.Color3(0.12, 0.06, 0.20);
+      mat.diffuseColor = new BABYLON.Color3(0.08, 0.28, 0.25);
     }
     return mat;
   }
@@ -95,12 +103,6 @@ export function createLettersCastleScene(engine, onExit) {
       { width: ROOM_WIDTH, height: 0.4, depth: ROOM_LENGTH }, scene);
     fl.position.set(0, -0.2, midZ);
     fl.material = (r === 0) ? tiledFloorMat : floorMat;
-
-    // Ceiling
-    const cl = BABYLON.MeshBuilder.CreateBox(`cl_${r}`,
-      { width: ROOM_WIDTH, height: 0.3, depth: ROOM_LENGTH }, scene);
-    cl.position.set(0, ROOM_HEIGHT, midZ);
-    cl.material = ceilMat;
 
     // Left wall
     const lw = BABYLON.MeshBuilder.CreateBox(`lw_${r}`,
@@ -197,6 +199,16 @@ export function createLettersCastleScene(engine, onExit) {
 
     // Direction sign above arch
     _buildDoorSign(r, wallZ, doorH);
+
+    // Pulsing ground beacon — visual cue that the doorway is walkable
+    const beacon = BABYLON.MeshBuilder.CreateSphere(`dbeacon_${r}`,
+      { diameter: 0.9, segments: 7 }, scene);
+    beacon.position.set(0, 0.5, wallZ - 0.3);
+    const beaconMat = new BABYLON.StandardMaterial(`dbeaconMat_${r}`, scene);
+    beaconMat.diffuseColor  = new BABYLON.Color3(0.10, 0.90, 0.70);
+    beaconMat.emissiveColor = new BABYLON.Color3(0.05, 0.60, 0.45);
+    beacon.material = beaconMat;
+    doorBeacons.push({ mesh: beacon, mat: beaconMat, offset: r * 1.3 });
   }
 
   // ── Sign above each doorway ──────────────────────────────────────────────────
@@ -229,9 +241,6 @@ export function createLettersCastleScene(engine, onExit) {
   }
 
   // ── Assembly Hall (Room 0) ───────────────────────────────────────────────────
-  let assemblyBoxMesh = null;
-  const ASSEMBLY_Z    = ROOM_LENGTH * 0.60;   // 13.2 — middle of room 0
-  const ASSEMBLY_POS  = new BABYLON.Vector3(0, 0, ASSEMBLY_Z);
 
   function _buildAssemblyHall(baseZ) {
     // Welcome sign near entrance
@@ -312,27 +321,269 @@ export function createLettersCastleScene(engine, onExit) {
 
   // ── Letter Room (Rooms 1–3) ─────────────────────────────────────────────────
   function _buildLetterRoom(r, baseZ) {
-    const idxA = (r - 1) * 2;        // letter indices 0, 2, 4
-    const idxB = (r - 1) * 2 + 1;    // letter indices 1, 3, 5
+    const idxA = (r - 1) * 2;
+    const idxB = (r - 1) * 2 + 1;
     const midZ = baseZ + ROOM_LENGTH / 2;
 
-    // Room label on the back wall
+    // Room label on back wall
     _buildRoomLabel(r, baseZ);
 
-    // Two letter tiles, centered on the walking path, staggered in depth
-    const tilePositions = [
-      new BABYLON.Vector3(0, 1.5, midZ - 4),
-      new BABYLON.Vector3(0, 1.5, midZ + 4),
+    // ── Randomised letter positions ──────────────────────────────────────────
+    // Pick from a pool of well-spread safe spots (avoid walls & furniture blocks)
+    const posPool = [
+      new BABYLON.Vector3(-7,  1.6, baseZ +  7),
+      new BABYLON.Vector3( 7,  1.6, baseZ +  7),
+      new BABYLON.Vector3(-8,  1.6, midZ  -  2),
+      new BABYLON.Vector3( 8,  1.6, midZ  +  2),
+      new BABYLON.Vector3(-5,  1.6, baseZ + 22),
+      new BABYLON.Vector3( 5,  1.6, baseZ + 22),
+      new BABYLON.Vector3( 0,  1.6, baseZ +  9),
+      new BABYLON.Vector3( 0,  1.6, baseZ + 21),
+      new BABYLON.Vector3(-6,  1.6, midZ),
+      new BABYLON.Vector3( 6,  1.6, midZ),
     ];
+    const iA = (r * 3 + 1) % posPool.length;
+    let   iB = (r * 5 + 4) % posPool.length;
+    if (iB === iA) iB = (iB + 1) % posPool.length;
 
-    if (idxA < TARGET_LETTERS.length) _buildLetterTile(TARGET_LETTERS[idxA], idxA, tilePositions[0]);
-    if (idxB < TARGET_LETTERS.length) _buildLetterTile(TARGET_LETTERS[idxB], idxB, tilePositions[1]);
+    if (idxA < TARGET_LETTERS.length) _buildLetterTile(TARGET_LETTERS[idxA], idxA, posPool[iA]);
+    if (idxB < TARGET_LETTERS.length) _buildLetterTile(TARGET_LETTERS[idxB], idxB, posPool[iB]);
 
-    // Crystal accent pillars flanking the tiles (near walls)
-    _buildCrystalPillar(-9, midZ - 5);
-    _buildCrystalPillar( 9, midZ - 5);
-    _buildCrystalPillar(-9, midZ + 5);
-    _buildCrystalPillar( 9, midZ + 5);
+    // ── Crystal accent pillars ───────────────────────────────────────────────
+    _buildCrystalPillar(-9, midZ - 6);
+    _buildCrystalPillar( 9, midZ - 6);
+    _buildCrystalPillar(-9, midZ + 6);
+    _buildCrystalPillar( 9, midZ + 6);
+
+    // ── Overhead lights (two bright point lights per room) ───────────────────
+    const makeRoomLight = (lx, lz, idx) => {
+      const l = new BABYLON.PointLight(`rl_${r}_${idx}`,
+        new BABYLON.Vector3(lx, 5.8, lz), scene);
+      l.diffuse    = new BABYLON.Color3(0.88, 0.78, 1.0);
+      l.intensity  = 4.0;
+      l.range      = 20;
+    };
+    makeRoomLight(0, midZ - 7, 0);
+    makeRoomLight(0, midZ + 7, 1);
+
+    // ── Furniture ────────────────────────────────────────────────────────────
+    _addLetterRoomFurniture(r, baseZ);
+  }
+
+  // ── Letter room furniture ────────────────────────────────────────────────────
+  function _addLetterRoomFurniture(r, baseZ) {
+    const B = BABYLON;
+    const midZ = baseZ + ROOM_LENGTH / 2;
+    const hw   = ROOM_WIDTH / 2;  // 12.5
+
+    // Shared wood material
+    const woodM = stdMat(`lrWood_${r}`, 0.42, 0.26, 0.10);
+    const darkM = stdMat(`lrDark_${r}`, 0.22, 0.14, 0.06);
+    const fabricM = stdMat(`lrFab_${r}`,
+      0.35 + r * 0.12, 0.15, 0.55 - r * 0.08,
+      0.06 + r * 0.02, 0.01, 0.12);
+    const stoneM = stdMat(`lrStone_${r}`, 0.32, 0.28, 0.42);
+    const metalM = stdMat(`lrMetal_${r}`, 0.55, 0.52, 0.60, 0.08, 0.06, 0.12);
+
+    // ── Colourful rug across the room length ──────────────────────────────────
+    const rug = B.MeshBuilder.CreateBox(`lrRug_${r}`,
+      { width: 14, height: 0.04, depth: ROOM_LENGTH - 4 }, scene);
+    rug.position.set(0, 0.02, midZ);
+    const rugM = stdMat(`lrRugM_${r}`,
+      0.18 + r * 0.08, 0.08, 0.38 + r * 0.06, 0.04, 0.01, 0.10);
+    rug.material = rugM;
+
+    // ── Bookshelves along both side walls ─────────────────────────────────────
+    const shelfData = [
+      { x: -(hw - 0.3), zOff: 5  },
+      { x: -(hw - 0.3), zOff: 17 },
+      { x:  (hw - 0.3), zOff: 5  },
+      { x:  (hw - 0.3), zOff: 17 },
+    ];
+    shelfData.forEach(({ x, zOff }, si) => {
+      const sz = baseZ + zOff;
+      // Shelf unit
+      const sh = B.MeshBuilder.CreateBox(`lrSh_${r}_${si}`,
+        { width: 0.4, height: 4.5, depth: 6 }, scene);
+      sh.position.set(x, 2.25, sz);
+      sh.material = darkM;
+      // Shelf planks
+      [1.2, 2.4, 3.6].forEach((sy, pi) => {
+        const sp = B.MeshBuilder.CreateBox(`lrShP_${r}_${si}_${pi}`,
+          { width: 0.42, height: 0.08, depth: 5.8 }, scene);
+        sp.position.set(x, sy, sz);
+        sp.material = woodM;
+      });
+      // Books on each shelf
+      const bkColors = [
+        [0.75,0.10,0.10],[0.10,0.45,0.85],[0.15,0.70,0.30],
+        [0.85,0.65,0.10],[0.60,0.10,0.75],[0.10,0.65,0.65],
+      ];
+      [1.2, 2.4, 3.6].forEach((sy, pi) => {
+        for (let b = 0; b < 5; b++) {
+          const bk = B.MeshBuilder.CreateBox(`lrBk_${r}_${si}_${pi}_${b}`,
+            { width: 0.4, height: 0.6 + b * 0.06, depth: 0.7 }, scene);
+          const side = x < 0 ? 1 : -1;
+          bk.position.set(x + side * 0.01, sy + 0.34 + b * 0.01, sz - 2.2 + b * 1.0);
+          const bkM = stdMat(`lrBkM_${r}_${si}_${pi}_${b}`,
+            ...bkColors[b % bkColors.length]);
+          bk.material = bkM;
+        }
+      });
+    });
+
+    // ── Central reading table ─────────────────────────────────────────────────
+    const tblZ = baseZ + ROOM_LENGTH * 0.55;
+    const tblTop = B.MeshBuilder.CreateBox(`lrTbl_${r}`,
+      { width: 5.5, height: 0.18, depth: 2.8 }, scene);
+    tblTop.position.set(0, 1.55, tblZ);
+    tblTop.material = woodM;
+    // Table legs
+    [[-2.4,-1.1],[-2.4,1.1],[2.4,-1.1],[2.4,1.1]].forEach(([lx,lz],li) => {
+      const leg = B.MeshBuilder.CreateCylinder(`lrTL_${r}_${li}`,
+        { diameter: 0.22, height: 1.5, tessellation: 6 }, scene);
+      leg.position.set(lx, 0.75, tblZ + lz);
+      leg.material = darkM;
+    });
+    // Items on table: open book + candle
+    const book = B.MeshBuilder.CreateBox(`lrBook_${r}`,
+      { width: 1.1, height: 0.08, depth: 0.85 }, scene);
+    book.position.set(-1.2, 1.65, tblZ - 0.1);
+    book.material = stdMat(`lrBkOpen_${r}`, 0.85, 0.80, 0.65);
+    const candle = B.MeshBuilder.CreateCylinder(`lrCnd_${r}`,
+      { diameter: 0.14, height: 0.55, tessellation: 8 }, scene);
+    candle.position.set(1.5, 1.84, tblZ);
+    candle.material = stdMat(`lrCndM_${r}`, 0.92, 0.88, 0.75, 0.25, 0.22, 0.10);
+    const flame = B.MeshBuilder.CreateSphere(`lrFlm_${r}`,
+      { diameter: 0.18, segments: 5 }, scene);
+    flame.position.set(1.5, 2.15, tblZ);
+    flame.material = stdMat(`lrFlmM_${r}`, 1.0, 0.65, 0.05, 0.80, 0.38, 0.0);
+    const fl = new B.PointLight(`lrFl_${r}`,
+      new B.Vector3(1.5, 2.3, tblZ), scene);
+    fl.diffuse = new B.Color3(1.0, 0.72, 0.28);
+    fl.intensity = 1.4; fl.range = 7;
+
+    // ── Chairs at table ───────────────────────────────────────────────────────
+    [[-3.4, 0, 0], [3.4, 0, Math.PI]].forEach(([cx, cz, ry], ci) => {
+      const seat = B.MeshBuilder.CreateBox(`lrSeat_${r}_${ci}`,
+        { width: 1.1, height: 0.10, depth: 1.1 }, scene);
+      seat.position.set(cx, 1.02, tblZ);
+      seat.material = fabricM;
+      const back = B.MeshBuilder.CreateBox(`lrBack_${r}_${ci}`,
+        { width: 1.1, height: 1.0, depth: 0.10 }, scene);
+      const side = cx < 0 ? -0.52 : 0.52;
+      back.position.set(cx, 1.58, tblZ + side);
+      back.material = fabricM;
+      [[-0.4,-0.4],[-0.4,0.4],[0.4,-0.4],[0.4,0.4]].forEach(([llx,llz],li) => {
+        const lleg = B.MeshBuilder.CreateCylinder(`lrCL_${r}_${ci}_${li}`,
+          { diameter: 0.10, height: 1.0, tessellation: 4 }, scene);
+        lleg.position.set(cx + llx, 0.50, tblZ + llz);
+        lleg.material = darkM;
+      });
+    });
+
+    // ── Decorative urns / vases at corners ───────────────────────────────────
+    [
+      [-hw + 1.5, baseZ + 2.5],
+      [ hw - 1.5, baseZ + 2.5],
+      [-hw + 1.5, baseZ + ROOM_LENGTH - 2.5],
+      [ hw - 1.5, baseZ + ROOM_LENGTH - 2.5],
+    ].forEach(([vx, vz], vi) => {
+      const urn = B.MeshBuilder.CreateCylinder(`lrUrn_${r}_${vi}`,
+        { diameterTop: 0.55, diameterBottom: 0.35, height: 1.2, tessellation: 10 }, scene);
+      urn.position.set(vx, 0.6, vz);
+      const urnM = stdMat(`lrUrnM_${r}_${vi}`,
+        0.55 + vi * 0.08, 0.30 + vi * 0.05, 0.70,
+        0.12 + vi * 0.02, 0.06, 0.18);
+      urn.material = urnM;
+      // Plant top (fluffy sphere)
+      const plant = B.MeshBuilder.CreateSphere(`lrPlant_${r}_${vi}`,
+        { diameter: 0.8, segments: 5 }, scene);
+      plant.position.set(vx, 1.55, vz);
+      plant.material = stdMat(`lrPlantM_${r}_${vi}`,
+        0.12, 0.55 + vi * 0.06, 0.22, 0.02, 0.14, 0.04);
+    });
+
+    // ── Wall-hung picture frames ──────────────────────────────────────────────
+    [
+      { x: -(hw - 0.08), z: midZ,        ry:  Math.PI / 2 },
+      { x:  (hw - 0.08), z: midZ,        ry: -Math.PI / 2 },
+      { x: -(hw - 0.08), z: midZ - 10,   ry:  Math.PI / 2 },
+      { x:  (hw - 0.08), z: midZ - 10,   ry: -Math.PI / 2 },
+    ].forEach(({ x, z, ry }, fi) => {
+      const frame = B.MeshBuilder.CreateBox(`lrFrm_${r}_${fi}`,
+        { width: 0.10, height: 1.8, depth: 1.4 }, scene);
+      frame.position.set(x, 3.4, z);
+      frame.rotation.y = ry;
+      frame.material = darkM;
+      const canvas = B.MeshBuilder.CreateBox(`lrCvs_${r}_${fi}`,
+        { width: 0.06, height: 1.5, depth: 1.1 }, scene);
+      canvas.position.set(x + (x < 0 ? 0.04 : -0.04), 3.4, z);
+      canvas.rotation.y = ry;
+      const cvColors = [
+        [0.45,0.15,0.65],[0.15,0.55,0.65],[0.65,0.45,0.10],[0.65,0.18,0.28],
+      ];
+      canvas.material = stdMat(`lrCvsM_${r}_${fi}`, ...cvColors[fi % 4],
+        cvColors[fi % 4][0]*0.3, cvColors[fi % 4][1]*0.3, cvColors[fi % 4][2]*0.3);
+    });
+
+    // ── Ceiling chandelier ────────────────────────────────────────────────────
+    const chain = B.MeshBuilder.CreateCylinder(`lrChain_${r}`,
+      { diameter: 0.08, height: 1.2, tessellation: 6 }, scene);
+    chain.position.set(0, ROOM_HEIGHT - 0.6, midZ);
+    chain.material = metalM;
+    const chandelier = B.MeshBuilder.CreateTorus(`lrChand_${r}`,
+      { diameter: 2.2, thickness: 0.12, tessellation: 20 }, scene);
+    chandelier.position.set(0, ROOM_HEIGHT - 1.3, midZ);
+    chandelier.material = metalM;
+    // 6 gem stones hanging from torus
+    for (let g = 0; g < 6; g++) {
+      const angle = (g / 6) * Math.PI * 2;
+      const gem = B.MeshBuilder.CreateSphere(`lrGem_${r}_${g}`,
+        { diameter: 0.22, segments: 5 }, scene);
+      gem.position.set(
+        Math.cos(angle) * 1.1, ROOM_HEIGHT - 1.55, midZ + Math.sin(angle) * 1.1);
+      const hue = g / 6;
+      gem.material = stdMat(`lrGemM_${r}_${g}`,
+        0.5 + hue * 0.4, 0.2, 0.8 - hue * 0.4,
+        0.35 + hue * 0.3, 0.05, 0.45 - hue * 0.2);
+    }
+    // Chandelier light
+    const cl = new B.PointLight(`lrCL_${r}`,
+      new B.Vector3(0, ROOM_HEIGHT - 1.5, midZ), scene);
+    cl.diffuse    = new B.Color3(0.90, 0.80, 1.0);
+    cl.intensity  = 3.0;
+    cl.range      = 22;
+
+    // ── Benches along back wall ───────────────────────────────────────────────
+    [[-4, 0], [4, 0]].forEach(([bx], bi) => {
+      const bench = B.MeshBuilder.CreateBox(`lrBench_${r}_${bi}`,
+        { width: 3.0, height: 0.14, depth: 0.9 }, scene);
+      bench.position.set(bx, 0.65, baseZ + ROOM_LENGTH - 2);
+      bench.material = woodM;
+      // Bench legs
+      [[-1.2, -0.3],[1.2, -0.3],[-1.2, 0.3],[1.2, 0.3]].forEach(([lx,lz],li) => {
+        const bl = B.MeshBuilder.CreateBox(`lrBL_${r}_${bi}_${li}`,
+          { width: 0.14, height: 0.62, depth: 0.14 }, scene);
+        bl.position.set(bx + lx, 0.31, baseZ + ROOM_LENGTH - 2 + lz);
+        bl.material = darkM;
+      });
+    });
+
+    // ── Barrel cluster near one corner ────────────────────────────────────────
+    [[1.2,0,0],[0,-0.5,1.1],[2.4,0,0.5]].forEach(([ox,oy,oz], bi) => {
+      const barrel = B.MeshBuilder.CreateCylinder(`lrBrl_${r}_${bi}`,
+        { diameter: 0.85, height: 1.1, tessellation: 10 }, scene);
+      barrel.position.set(-hw + 2 + ox, 0.55 + oy, baseZ + 4 + oz);
+      if (oy < 0) barrel.rotation.z = Math.PI / 2;
+      barrel.material = stoneM;
+      // Barrel ring
+      const ring = B.MeshBuilder.CreateTorus(`lrBrlR_${r}_${bi}`,
+        { diameter: 0.88, thickness: 0.05, tessellation: 12 }, scene);
+      ring.position.set(-hw + 2 + ox, (oy < 0 ? 0.55 + oy : 0.78 + oy), baseZ + 4 + oz);
+      if (oy < 0) ring.rotation.z = Math.PI / 2;
+      ring.material = metalM;
+    });
   }
 
   // ── Room number label on back wall ──────────────────────────────────────────
@@ -462,7 +713,6 @@ export function createLettersCastleScene(engine, onExit) {
   }
 
   // ── Wall torch ───────────────────────────────────────────────────────────────
-  const torchLights = [];
 
   function _buildWallTorch(wallX, z, r) {
     // Bracket stub (inset 0.5 from wall)
@@ -647,6 +897,18 @@ export function createLettersCastleScene(engine, onExit) {
     setTimeout(() => { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 4000);
   }
 
+  // ── Order hint ──────────────────────────────────────────────────────────────
+  function _showOrderHint(triedLetter, nextExpected) {
+    const now = performance.now();
+    if (now - _lastOrderHintTime < 2000) return; // debounce 2 s
+    _lastOrderHintTime = now;
+    const b = document.createElement("div");
+    b.className  = "room-banner order-hint";
+    b.textContent = `⚠️ Collect the letters in alphabetical order!`;
+    document.body.appendChild(b);
+    setTimeout(() => { if (b.parentNode) b.parentNode.removeChild(b); }, 2500);
+  }
+
   // ── Collect banner ───────────────────────────────────────────────────────────
   function _showCollectBanner(letter) {
     const b = document.createElement("div");
@@ -676,6 +938,13 @@ export function createLettersCastleScene(engine, onExit) {
           + 0.20 * Math.sin(time * 7.3 + t.offset);
       }
 
+      // Door beacon pulse
+      for (const b of doorBeacons) {
+        const pulse = 0.55 + 0.45 * Math.sin(time * 2.2 + b.offset);
+        b.mat.emissiveColor.set(0.05 * pulse, 0.60 * pulse, 0.45 * pulse);
+        b.mesh.position.y = 0.45 + 0.18 * Math.sin(time * 2.2 + b.offset);
+      }
+
       // Letter tile float + collection
       for (const tile of letterTiles) {
         tile.update();
@@ -685,16 +954,26 @@ export function createLettersCastleScene(engine, onExit) {
             tile.root.position
           );
           if (dist < 5.0) {
-            tile.collected = true;
-            collectedLetters.push(tile.letter);
-            tile.root.setEnabled(false);
-            _showCollectBanner(tile.letter);
-            _updateHUD();
+            const nextExpected = ALPHA_ORDER[collectedLetters.length];
+            if (tile.letter.toUpperCase() !== nextExpected) {
+              // Wrong alphabetical order — hint the player
+              _showOrderHint(tile.letter, nextExpected);
+            } else {
+              tile.collected = true;
+              collectedLetters.push(tile.letter);
+              tile.root.setEnabled(false);
+              _showCollectBanner(tile.letter);
+              _updateHUD();
+              // Last letter collected — open puzzle immediately
+              if (collectedLetters.length === 6 && !assemblyOpen) {
+                setTimeout(() => _showAssemblyUI(), 800);
+              }
+            }
           }
         }
       }
 
-      // Assembly box trigger (all 6 letters + close to box)
+      // Assembly box trigger (all 6 letters + close to box) — kept as fallback
       if (!assemblyOpen && collectedLetters.length === 6) {
         const asmDist = BABYLON.Vector3.Distance(
           new BABYLON.Vector3(px, py, pz),

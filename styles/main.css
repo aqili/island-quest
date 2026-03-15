@@ -74,6 +74,49 @@ body {
   letter-spacing: 0.03em;
 }
 
+/* Hide keyboard controls hint on touch/mobile — joystick is used instead */
+@media (hover: none) and (pointer: coarse) {
+  #controls-hint { display: none; }
+}
+
+/* ===== Virtual Joystick (built into Player.js) ===== */
+#joy-wrap {
+  position: fixed;
+  bottom: 28px;
+  left: 28px;
+  width: 120px;
+  height: 120px;
+  z-index: 200;
+  pointer-events: all;
+  /* Hidden on desktop — only show on touch devices */
+  display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  #joy-wrap { display: block; }
+}
+
+#joy-base {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 3px solid rgba(255, 255, 255, 0.40);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#joy-knob {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.80);
+  pointer-events: none;   /* touches handled by joy-wrap */
+  will-change: transform;
+}
+
 /* ===== Puzzle Overlay ===== */
 #ui-overlay {
   position: fixed;
@@ -348,6 +391,37 @@ body {
   z-index: 250;
   pointer-events: none;
   animation: bannerFade 2.5s forwards;
+}
+
+.room-banner.order-hint {
+  color: #ff6b35;
+  background: rgba(40, 10, 0, 0.82);
+  border: 2px solid #ff6b35;
+}
+
+/* Mobile jump button */
+#btn-jump {
+  display: none;
+  position: fixed;
+  bottom: 40px;
+  right: 30px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(30, 180, 140, 0.75);
+  border: 3px solid rgba(255,255,255,0.55);
+  color: #fff;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 200;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  #btn-jump { display: flex; align-items: center; justify-content: center; }
 }
 
 @keyframes bannerFade {

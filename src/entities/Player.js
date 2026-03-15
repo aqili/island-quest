@@ -129,6 +129,13 @@ export function createPlayer(scene) {
   // Joystick state — updated by touch handlers, read by update()
   let joy = { dx: 0, dz: 0 };
 
+  // ── Jump state ───────────────────────────────────────────────────────────
+  const GROUND_Y    = 0.5;
+  const JUMP_FORCE  = 0.22;
+  const GRAVITY     = 0.013;
+  let isJumping     = false;
+  let jumpVelocity  = 0;
+
   const BASE_R  = 55;  // px radius of the outer ring
   const KNOB_R  = 26;  // px radius of the draggable knob
   const MAX_OFF = BASE_R - KNOB_R; // max knob travel from center
@@ -146,6 +153,16 @@ export function createPlayer(scene) {
   joyBase.appendChild(joyKnob);
   joyWrap.appendChild(joyBase);
   document.body.appendChild(joyWrap);
+
+  // ── Mobile jump button ───────────────────────────────────────────────────
+  const jumpBtn = document.createElement("button");
+  jumpBtn.id = "btn-jump";
+  jumpBtn.textContent = "⬆";
+  document.body.appendChild(jumpBtn);
+  jumpBtn.addEventListener("touchstart", e => {
+    e.preventDefault();
+    if (!isJumping) { isJumping = true; jumpVelocity = JUMP_FORCE; }
+  }, { passive: false });
 
   let activeTouchId = null;
   let baseX = 0, baseY = 0;
@@ -207,6 +224,7 @@ export function createPlayer(scene) {
     window.removeEventListener("touchend",  _joyReset);
     window.removeEventListener("touchcancel", _joyReset);
     if (joyWrap.parentNode) joyWrap.parentNode.removeChild(joyWrap);
+    if (jumpBtn.parentNode) jumpBtn.parentNode.removeChild(jumpBtn);
   });
 
   const SPEED = 0.15;
@@ -216,8 +234,22 @@ export function createPlayer(scene) {
 
   // ── Update ───────────────────────────────────────────────────────────────
   function update() {
-    // Lock player on ground plane — never drift on Y
-    root.position.y = 0.5;
+    // Jump physics
+    if ((keys["Space"] || keys["KeyZ"]) && !isJumping) {
+      isJumping = true;
+      jumpVelocity = JUMP_FORCE;
+    }
+    if (isJumping) {
+      root.position.y += jumpVelocity;
+      jumpVelocity   -= GRAVITY;
+      if (root.position.y <= GROUND_Y) {
+        root.position.y = GROUND_Y;
+        isJumping       = false;
+        jumpVelocity    = 0;
+      }
+    } else {
+      root.position.y = GROUND_Y;
+    }
 
     // Camera target tracks player at chest height for better framing
     camTarget.x = root.position.x;
@@ -256,34 +288,43 @@ export function createPlayer(scene) {
         root.rotation.y = Math.atan2(worldDx, worldDz);
       }
 
-      // Walk cycle
-      walkTime += 0.18;
-      const swing = Math.sin(walkTime) * 0.55;        // ±0.55 rad swing
-      const legBob = Math.abs(Math.sin(walkTime)) * 0.04; // slight vertical bob
+      // Walk cycle (skip if mid-air)
+      if (!isJumping) {
+        walkTime += 0.18;
+        const swing  = Math.sin(walkTime) * 0.55;
+        const legBob = Math.abs(Math.sin(walkTime)) * 0.04;
 
-      lArmPivot.rotation.x =  swing;
-      rArmPivot.rotation.x = -swing;
-      lLegPivot.rotation.x = -swing;
-      rLegPivot.rotation.x =  swing;
+        lArmPivot.rotation.x =  swing;
+        rArmPivot.rotation.x = -swing;
+        lLegPivot.rotation.x = -swing;
+        rLegPivot.rotation.x =  swing;
 
-      // Body bob
-      torso.position.y = 0.70 - legBob;
-
-      // Head slight sway
-      headPivot.rotation.z = Math.sin(walkTime * 0.5) * 0.04;
+        torso.position.y = 0.70 - legBob;
+        headPivot.rotation.z = Math.sin(walkTime * 0.5) * 0.04;
+      }
 
     } else {
       // Idle: gently return limbs to rest with lerp
       walkTime = 0;
-      lArmPivot.rotation.x = BABYLON.Scalar.Lerp(lArmPivot.rotation.x, 0, 0.15);
-      rArmPivot.rotation.x = BABYLON.Scalar.Lerp(rArmPivot.rotation.x, 0, 0.15);
-      lLegPivot.rotation.x = BABYLON.Scalar.Lerp(lLegPivot.rotation.x, 0, 0.15);
-      rLegPivot.rotation.x = BABYLON.Scalar.Lerp(rLegPivot.rotation.x, 0, 0.15);
-      torso.position.y = BABYLON.Scalar.Lerp(torso.position.y, 0.70, 0.10);
+      if (!isJumping) {
+        lArmPivot.rotation.x = BABYLON.Scalar.Lerp(lArmPivot.rotation.x, 0, 0.15);
+        rArmPivot.rotation.x = BABYLON.Scalar.Lerp(rArmPivot.rotation.x, 0, 0.15);
+        lLegPivot.rotation.x = BABYLON.Scalar.Lerp(lLegPivot.rotation.x, 0, 0.15);
+        rLegPivot.rotation.x = BABYLON.Scalar.Lerp(rLegPivot.rotation.x, 0, 0.15);
+        torso.position.y = BABYLON.Scalar.Lerp(torso.position.y, 0.70, 0.10);
 
-      // Idle breathing
-      const breathe = Math.sin(Date.now() * 0.001) * 0.015;
-      torso.position.y += breathe;
+        // Idle breathing
+        const breathe = Math.sin(Date.now() * 0.001) * 0.015;
+        torso.position.y += breathe;
+      }
+    }
+
+    // Jump pose — arms raised, legs tucked (overrides walk/idle)
+    if (isJumping) {
+      lArmPivot.rotation.x = BABYLON.Scalar.Lerp(lArmPivot.rotation.x, -1.1, 0.25);
+      rArmPivot.rotation.x = BABYLON.Scalar.Lerp(rArmPivot.rotation.x, -1.1, 0.25);
+      lLegPivot.rotation.x = BABYLON.Scalar.Lerp(lLegPivot.rotation.x,  0.45, 0.25);
+      rLegPivot.rotation.x = BABYLON.Scalar.Lerp(rLegPivot.rotation.x,  0.45, 0.25);
     }
   }
 
