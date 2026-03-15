@@ -185,7 +185,7 @@ export const CHARACTER_REGISTRY = [
     model:       "https://threejs.org/examples/models/gltf/Soldier.glb",
     thumbnail:   "💂",
     description: "An animated soldier (Three.js CC0)",
-    scale:       1.80,
+    scale:       1.0,   // origin at feet; ~1.75 units tall at scale 1 — fits world correctly
     yOffset:     0.0,
     animations:  { idle: "Idle", walk: "Walk", run: "Run", jump: "Walk" },
     preset:      null,
@@ -217,7 +217,7 @@ export const CHARACTER_REGISTRY = [
 ];
 
 /** Default character used when nothing is saved */
-export const DEFAULT_CHARACTER_ID = "procedural";
+export const DEFAULT_CHARACTER_ID = "cdn_soldier";
 
 /**
  * Look up a character by id, falling back to the default if not found.
