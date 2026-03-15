@@ -106,6 +106,65 @@ document.getElementById("btn-respawn").addEventListener("click", () => {
   goToWorld();
 });
 
+// ── In-game character picker ──────────────────────────────────────────────────
+document.getElementById("btn-character").addEventListener("click", _showCharacterPicker);
+
+function _showCharacterPicker() {
+  // Don't open a second one
+  if (document.getElementById("char-picker-overlay")) return;
+
+  let currentId;
+  try { currentId = localStorage.getItem("iq_character") || DEFAULT_CHARACTER_ID; } catch(e) { currentId = DEFAULT_CHARACTER_ID; }
+
+  const overlay = document.createElement("div");
+  overlay.id = "char-picker-overlay";
+
+  const panel = document.createElement("div");
+  panel.className = "char-picker-panel";
+
+  const title = document.createElement("h3");
+  title.className = "char-picker-title";
+  title.textContent = "👤 Choose Character";
+  panel.appendChild(title);
+
+  const grid = document.createElement("div");
+  grid.className = "char-picker-grid";
+
+  CHARACTER_REGISTRY.forEach(ch => {
+    const btn = document.createElement("button");
+    btn.className = "char-picker-btn" + (ch.id === currentId ? " active" : "");
+
+    btn.innerHTML =
+      `<span class="cp-icon">${ch.thumbnail || "🧑"}</span>` +
+      `<span class="cp-name">${ch.name}</span>` +
+      `<span class="cp-src">${ch.source === "builtin" ? "built-in" : ch.source}</span>`;
+
+    btn.addEventListener("click", () => {
+      try { localStorage.setItem("iq_character", ch.id); } catch(e) {}
+      overlay.remove();
+      // Close any open puzzle overlay before respawning
+      const puzzleEl = document.getElementById("ui-overlay");
+      if (puzzleEl) { puzzleEl.innerHTML = ""; puzzleEl.classList.remove("active"); }
+      goToWorld();
+    });
+
+    grid.appendChild(btn);
+  });
+
+  panel.appendChild(grid);
+
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "char-picker-close";
+  closeBtn.textContent = "✕ Close";
+  closeBtn.addEventListener("click", () => overlay.remove());
+  panel.appendChild(closeBtn);
+
+  overlay.appendChild(panel);
+  // Tap outside panel to close
+  overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
 // ── Language toggle button ────────────────────────────────────────────────────
 
 const btnLang = document.getElementById("btn-lang");

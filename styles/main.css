@@ -606,6 +606,112 @@ body {
   }
 }
 
+/* ===== In-game character picker button ===== */
+#btn-character {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.15rem;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 200, 50, 0.22);
+  color: #ffe066;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.30);
+  white-space: nowrap;
+}
+#btn-character:hover  { background: rgba(255,200,50,0.40); transform: translateY(-2px); }
+#btn-character:active { transform: translateY(1px); }
+
+/* ===== In-game character picker overlay ===== */
+#char-picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 450;
+}
+
+.char-picker-panel {
+  background: linear-gradient(160deg, #0e3a6e 0%, #1a6fa8 80%);
+  border: 2px solid rgba(255,255,255,0.22);
+  border-radius: 22px;
+  padding: 22px 18px 16px;
+  max-width: 400px;
+  width: calc(100vw - 32px);
+  max-height: 80vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.char-picker-title {
+  color: #ffe066;
+  font-size: 1.35rem;
+  text-align: center;
+  margin: 0;
+}
+
+.char-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.char-picker-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+.char-picker-btn:hover {
+  background: rgba(255,255,255,0.20);
+  transform: scale(1.06);
+}
+.char-picker-btn.active {
+  border-color: #ffe066;
+  background: rgba(255,224,102,0.18);
+  transform: scale(1.06);
+}
+
+.cp-icon { font-size: 1.9rem; line-height: 1; }
+.cp-name { font-size: 0.72rem; text-align: center; line-height: 1.2; }
+.cp-src  { font-size: 0.60rem; opacity: 0.60; }
+
+.char-picker-close {
+  align-self: center;
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.30);
+  color: #fff;
+  border-radius: 12px;
+  padding: 8px 28px;
+  font-size: 1.0rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.char-picker-close:hover { background: rgba(255,255,255,0.25); }
+
+/* Mobile: 2-column grid on very small screens */
+@media (max-width: 380px) {
+  .char-picker-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ===== Arabic RTL support ===== */
 html[dir="rtl"] body { direction: rtl; }
 
