@@ -1,12 +1,26 @@
 /**
  * Player.js
- * Articulated character with walk-cycle animation.
- * Body parts: torso, head, left/right arms, left/right legs.
- * Arms and legs swing opposite each other while moving.
+ * Articulated procedural character with optional GLB model override.
+ *
+ * The procedural character is always built immediately (no async delay).
+ * If a GLB character is selected (via iq_character in localStorage), it
+ * loads in the background and swaps in when ready.  If the GLB file does
+ * not exist yet, the procedural character continues to be used silently.
+ *
+ * API (unchanged):  createPlayer(scene)  →  { mesh, update, camera }
  */
+
+import { getCharacter }       from "../data/characters.js";
+import { loadCharacterModel, playAnimation, stopAllAnimations }
+                               from "../utils/loadCharacterModel.js";
 
 export function createPlayer(scene) {
   const BABYLON = window.BABYLON;
+
+  // ── Determine selected character ─────────────────────────────────────────
+  let _charId = "procedural";
+  try { _charId = localStorage.getItem("iq_character") || "procedural"; } catch(e) {}
+  const _charDef = getCharacter(_charId);
 
   // ── Load avatar config from localStorage ─────────────────────────────────
   let _avatar = {};
@@ -298,44 +312,103 @@ export function createPlayer(scene) {
         root.rotation.y = Math.atan2(worldDx, worldDz);
       }
 
-      // Walk cycle (skip if mid-air)
-      if (!isJumping) {
-        walkTime += 0.18;
-        const swing  = Math.sin(walkTime) * 0.55;
-        const legBob = Math.abs(Math.sin(walkTime)) * 0.04;
+      // ── GLB: play walk/run animation ───────────────────────────────────
+      if (_usingGLB) {
+        _switchGLBAnim(isJumping ? "jump" : "walk");
+      } else {
+        // Procedural walk cycle (skip if mid-air)
+        if (!isJumping) {
+          walkTime += 0.18;
+          const swing  = Math.sin(walkTime) * 0.55;
+          const legBob = Math.abs(Math.sin(walkTime)) * 0.04;
 
-        lArmPivot.rotation.x =  swing;
-        rArmPivot.rotation.x = -swing;
-        lLegPivot.rotation.x = -swing;
-        rLegPivot.rotation.x =  swing;
+          lArmPivot.rotation.x =  swing;
+          rArmPivot.rotation.x = -swing;
+          lLegPivot.rotation.x = -swing;
+          rLegPivot.rotation.x =  swing;
 
-        torso.position.y = 0.70 - legBob;
-        headPivot.rotation.z = Math.sin(walkTime * 0.5) * 0.04;
+          torso.position.y = 0.70 - legBob;
+          headPivot.rotation.z = Math.sin(walkTime * 0.5) * 0.04;
+        }
       }
 
     } else {
       // Idle: gently return limbs to rest with lerp
       walkTime = 0;
-      if (!isJumping) {
-        lArmPivot.rotation.x = BABYLON.Scalar.Lerp(lArmPivot.rotation.x, 0, 0.15);
-        rArmPivot.rotation.x = BABYLON.Scalar.Lerp(rArmPivot.rotation.x, 0, 0.15);
-        lLegPivot.rotation.x = BABYLON.Scalar.Lerp(lLegPivot.rotation.x, 0, 0.15);
-        rLegPivot.rotation.x = BABYLON.Scalar.Lerp(rLegPivot.rotation.x, 0, 0.15);
-        torso.position.y = BABYLON.Scalar.Lerp(torso.position.y, 0.70, 0.10);
 
-        // Idle breathing
-        const breathe = Math.sin(Date.now() * 0.001) * 0.015;
-        torso.position.y += breathe;
+      if (_usingGLB) {
+        _switchGLBAnim(isJumping ? "jump" : "idle");
+      } else {
+        if (!isJumping) {
+          lArmPivot.rotation.x = BABYLON.Scalar.Lerp(lArmPivot.rotation.x, 0, 0.15);
+          rArmPivot.rotation.x = BABYLON.Scalar.Lerp(rArmPivot.rotation.x, 0, 0.15);
+          lLegPivot.rotation.x = BABYLON.Scalar.Lerp(lLegPivot.rotation.x, 0, 0.15);
+          rLegPivot.rotation.x = BABYLON.Scalar.Lerp(rLegPivot.rotation.x, 0, 0.15);
+          torso.position.y = BABYLON.Scalar.Lerp(torso.position.y, 0.70, 0.10);
+
+          // Idle breathing
+          const breathe = Math.sin(Date.now() * 0.001) * 0.015;
+          torso.position.y += breathe;
+        }
       }
     }
 
-    // Jump pose — arms raised, legs tucked (overrides walk/idle)
-    if (isJumping) {
+    // Jump pose — arms raised, legs tucked (procedural only; GLB uses jump anim)
+    if (!_usingGLB && isJumping) {
       lArmPivot.rotation.x = BABYLON.Scalar.Lerp(lArmPivot.rotation.x, -1.1, 0.25);
       rArmPivot.rotation.x = BABYLON.Scalar.Lerp(rArmPivot.rotation.x, -1.1, 0.25);
       lLegPivot.rotation.x = BABYLON.Scalar.Lerp(lLegPivot.rotation.x,  0.45, 0.25);
       rLegPivot.rotation.x = BABYLON.Scalar.Lerp(rLegPivot.rotation.x,  0.45, 0.25);
     }
+  }
+
+  // ── GLB character loading (async, non-blocking) ──────────────────────────
+  // State for GLB animation management
+  let _glbAnimGroups  = [];
+  let _usingGLB       = false;
+  let _currentAnim    = null;
+
+  // All procedural meshes (to hide when GLB loads)
+  const _proceduralMeshes = [torso, head, hair,
+    ...scene.meshes.filter(m => ["eyeL","eyeR","lUpperArm","rUpperArm",
+      "lForeArm","rForeArm","lUpperLeg","rUpperLeg",
+      "lLowerLeg","rLowerLeg","lFoot","rFoot"].includes(m.name))
+  ];
+
+  function _setProceduralVisible(v) {
+    _proceduralMeshes.forEach(m => { if (m) m.isVisible = v; });
+  }
+
+  function _switchGLBAnim(name, loop = true) {
+    if (!_usingGLB || !name) return;
+    const animName = _charDef.animations?.[name] || name;
+    if (_currentAnim === animName) return;
+    stopAllAnimations(_glbAnimGroups);
+    playAnimation(_glbAnimGroups, animName, loop);
+    _currentAnim = animName;
+  }
+
+  if (_charDef.model) {
+    loadCharacterModel(scene, _charDef.model).then(result => {
+      if (!result) return;  // file not found — keep procedural silently
+
+      const glbRoot = result.root;
+      _glbAnimGroups = result.animationGroups;
+
+      // Fix scale & parent under player root
+      glbRoot.parent   = root;
+      glbRoot.position = new BABYLON.Vector3(0, -0.5 + (_charDef.yOffset || 0), 0);
+      glbRoot.scaling  = new BABYLON.Vector3(
+        _charDef.scale, _charDef.scale, _charDef.scale
+      );
+
+      // Hide procedural parts
+      _setProceduralVisible(false);
+      _usingGLB = true;
+
+      // Start idle
+      _switchGLBAnim("idle");
+    });
   }
 
   return { mesh: root, update, camera };

@@ -20,6 +20,7 @@ import { createNumbersCastleScene }  from "./scenes/NumbersCastleScene.js";
 import { SaveManager }              from "./utils/SaveManager.js";
 import { initI18n, setLang, getLang, t } from "./utils/i18n.js";
 import { SoundManager }             from "./utils/SoundManager.js";
+import { CHARACTER_REGISTRY, DEFAULT_CHARACTER_ID } from "./data/characters.js";
 
 // ── Engine setup ──────────────────────────────────────────────────────────────
 const canvas = document.getElementById("renderCanvas");
@@ -298,6 +299,62 @@ function _buildAvatarSelector() {
   body.appendChild(options);
   card.appendChild(body);
 
+  // ── Character Selection ──────────────────────────────────────────────────
+  let _selectedCharId;
+  try { _selectedCharId = localStorage.getItem("iq_character") || DEFAULT_CHARACTER_ID; } catch(e) { _selectedCharId = DEFAULT_CHARACTER_ID; }
+
+  const charSectionLabel = document.createElement("div");
+  charSectionLabel.className = "avatar-label";
+  charSectionLabel.textContent = "Choose Character";
+  charSectionLabel.style.cssText = "margin-top:14px;";
+  options.appendChild(charSectionLabel);
+
+  const charGrid = document.createElement("div");
+  charGrid.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;";
+  options.appendChild(charGrid);
+
+  function _buildCharCards() {
+    charGrid.innerHTML = "";
+    CHARACTER_REGISTRY.forEach(ch => {
+      const btn = document.createElement("button");
+      btn.style.cssText = [
+        "display:flex;flex-direction:column;align-items:center;justify-content:center;",
+        "width:72px;min-height:72px;border-radius:12px;cursor:pointer;",
+        "font-family:inherit;font-size:0.75rem;padding:6px 4px;gap:3px;",
+        "border:3px solid transparent;transition:border-color 0.15s,transform 0.15s;",
+        "background:rgba(255,255,255,0.12);color:#fff;",
+        ch.id === _selectedCharId ? "border-color:#ffe066;transform:scale(1.1);background:rgba(255,224,102,0.18);" : "",
+      ].join("");
+      btn.title = ch.description;
+
+      const icon = document.createElement("span");
+      icon.style.cssText = "font-size:1.6rem;line-height:1;";
+      icon.textContent   = ch.thumbnail || "🧑";
+
+      const lbl = document.createElement("span");
+      lbl.style.cssText  = "font-size:0.68rem;text-align:center;line-height:1.2;";
+      lbl.textContent    = ch.name;
+
+      const src = document.createElement("span");
+      src.style.cssText  = "font-size:0.58rem;opacity:0.65;";
+      src.textContent    = ch.source === "builtin" ? "built-in" : ch.source;
+
+      btn.appendChild(icon);
+      btn.appendChild(lbl);
+      btn.appendChild(src);
+
+      btn.addEventListener("click", () => {
+        _selectedCharId = ch.id;
+        _buildCharCards();   // re-render to update highlight
+        // Also update CSS preview if the procedural char is chosen
+        if (ch.id === "procedural") _updatePreview();
+      });
+
+      charGrid.appendChild(btn);
+    });
+  }
+  _buildCharCards();
+
   // Sound toggle
   const soundRow = document.createElement("div");
   soundRow.className = "avatar-sound-row";
@@ -317,8 +374,10 @@ function _buildAvatarSelector() {
   playBtn.className = "btn-play";
   playBtn.textContent = t("avatar.play");
   playBtn.addEventListener("click", () => {
-    // Save avatar
-    try { localStorage.setItem("iq_avatar", JSON.stringify(sel)); } catch(e) {}
+    // Save avatar colours
+    try { localStorage.setItem("iq_avatar",     JSON.stringify(sel));             } catch(e) {}
+    // Save selected character
+    try { localStorage.setItem("iq_character",  _selectedCharId);                } catch(e) {}
     // Start ambient sound
     SoundManager.startAmbient();
     overlay.classList.add("hidden");

@@ -6,6 +6,9 @@
 
 import { createPlayer } from "../entities/Player.js";
 import { SaveManager }   from "../utils/SaveManager.js";
+import { loadCharacterModel, playAnimation } from "../utils/loadCharacterModel.js";
+import { NPC_CHARACTERS } from "../data/characters.js";
+
 
 const BABYLON = window.BABYLON;
 
@@ -102,6 +105,9 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   player.mesh.position    = new BABYLON.Vector3(0, 0.5, 0);
   player.camera.alpha     = Math.PI / 2;   // face toward Letters Island (-Z)
   player.camera.beta      = Math.PI / 2.3; // more horizontal view
+
+  // ── Decorative NPCs near islands (GLB if available, otherwise skipped) ────
+  _spawnNPCs(scene);
 
   // ── HUD ───────────────────────────────────────────────────────────────────
   const hudLocation = document.getElementById("hud-location");
@@ -544,11 +550,6 @@ function _buildSign(scene, x, z, text, color) {
   const dt  = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 180 }, scene);
   const ctx = dt.getContext();
 
-  // Pre-flip canvas: signs face player from +Z, box +Z face is h+v flipped → cancel both
-  ctx.save();
-  ctx.translate(512, 180);
-  ctx.scale(-1, -1);
-
   // Background
   ctx.fillStyle = "#1a0e04";
   ctx.fillRect(0, 0, 512, 180);
@@ -572,7 +573,6 @@ function _buildSign(scene, x, z, text, color) {
   ctx.font = "28px Arial";
   ctx.fillText(subtitle, 256, 142);
 
-  ctx.restore();
   dt.update();
 
   const boardMat = new BABYLON.StandardMaterial("boardMat_" + x, scene);
@@ -1121,4 +1121,40 @@ function _buildCow(scene, homeX, homeZ, wanderR, id) {
       } catch(e) {}
     }
   };
+}
+
+// ───────────────────────────────────────────────────────────────────────────────
+// DECORATIVE NPCs (Kenney GLB characters standing near castles)
+// ───────────────────────────────────────────────────────────────────────────────
+
+/**
+ * NPC spawn points — one per island, rotated to face the castle entrance.
+ * Characters cycle through NPC_CHARACTERS list.
+ */
+const NPC_SPAWN_POINTS = [
+  { x: -30, z:  2, ry: Math.PI * 0.25,  label: "Math Island NPC"    },
+  { x:  30, z:  2, ry: Math.PI * 0.75,  label: "Language Island NPC" },
+  { x:   3, z: -53, ry: 0,              label: "Letters Island NPC"  },
+  { x:  -3, z:  52, ry: Math.PI,        label: "Numbers Island NPC"  },
+];
+
+function _spawnNPCs(scene) {
+  NPC_SPAWN_POINTS.forEach((pt, i) => {
+    const charDef = NPC_CHARACTERS[i % NPC_CHARACTERS.length];
+    if (!charDef || !charDef.model) return;
+
+    loadCharacterModel(scene, charDef.model).then(result => {
+      if (!result) return;  // GLB not found — no NPC that's fine
+
+      const npcRoot = result.root;
+      npcRoot.position = new BABYLON.Vector3(pt.x, 0, pt.z);
+      npcRoot.rotation.y = pt.ry;
+      npcRoot.scaling  = new BABYLON.Vector3(
+        charDef.scale, charDef.scale, charDef.scale
+      );
+
+      // Play idle animation if available
+      playAnimation(result.animationGroups, "Idle", true);
+    });
+  });
 }
