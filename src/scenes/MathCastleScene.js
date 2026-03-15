@@ -551,21 +551,13 @@ function _buildDoorSign(scene, idx, cx, dz, accentColor) {
   //   Room 2 (idx=2): vertical flip only
   //   Room 3 (idx=3): both horizontal + vertical
   ctx.save();
-  if (idx === 0) {
-    // Room 1: no flip needed — face is naturally correct
-  } else if (idx === 1) {
-    // Room 2: vertical flip only
-    ctx.translate(0, H);
-    ctx.scale(1, -1);
-  } else if (idx === 2) {
-    // Room 3: horizontal flip only
-    ctx.translate(W, 0);
-    ctx.scale(-1, 1);
-  } else {
-    // Room 4: both horizontal + vertical flip
+  // Rooms with door at Z=ROOM_L (idx 0,2): player sees -Z face = naturally correct, no flip.
+  // Rooms with door at Z=0       (idx 1,3): player sees +Z face = naturally h+v flipped, need h+v.
+  if (idx === 1 || idx === 3) {
     ctx.translate(W, H);
     ctx.scale(-1, -1);
   }
+  // idx 0 and 2: no transform needed
 
   ctx.fillStyle = "#1a0e04"; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = "#d4a017"; ctx.lineWidth = 6; ctx.strokeRect(6, 6, W - 12, H - 12);
