@@ -133,6 +133,7 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   const langDoor = new BABYLON.Vector3( 60, 0.5, 9);
 
   scene.registerBeforeRender(() => {
+    try {
     player.update();
 
     const px = player.mesh.position;
@@ -173,8 +174,8 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
         lastNearIsland = null;
         hudLocation.textContent = "🌊 Open Ocean";
       }
-
-      updateHUD();
+    }
+    updateHUD();
     } catch (e) {
       console.error("WorldScene render error:", e);
     }
