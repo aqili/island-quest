@@ -541,13 +541,29 @@ body {
 
 /* ===== Mobile enhancements (max-width: 640px) ===== */
 @media (max-width: 640px) {
-  /* HUD */
-  #hud { padding: 7px 12px; gap: 10px; }
-  #hud-location { font-size: 1.05rem; min-width: 130px; }
-  #hud-stars    { font-size: 1.05rem; }
-  #hud-crowns   { font-size: 1.15rem; }
-  #btn-respawn  { font-size: 1.0rem; padding: 6px 14px; }
-  #btn-lang     { font-size: 1.0rem; padding: 4px 10px; }
+  /* HUD — hide island name & stars, keep only crown + buttons */
+  #hud {
+    padding: 6px 10px;
+    gap: 8px;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    justify-content: flex-end;
+  }
+  #hud-location { display: none; }
+  #hud-stars    { display: none; }
+  #hud-crowns   { font-size: 1.3rem; }
+  #btn-respawn  {
+    font-size: 0.95rem;
+    padding: 5px 12px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+  }
+  #btn-lang {
+    font-size: 0.95rem;
+    padding: 4px 10px;
+  }
 
   /* Puzzle panel */
   .puzzle-panel {
@@ -597,19 +613,20 @@ html[dir="rtl"] #hud {
   flex-direction: row-reverse;
 }
 
+/* Controls, joystick and jump button stay in their fixed positions regardless of language */
 html[dir="rtl"] #controls-hint {
-  left: auto;
-  right: 18px;
+  left: 18px;
+  right: auto;
 }
 
 html[dir="rtl"] #joy-wrap {
-  left: auto;
-  right: 28px;
+  left: 36px;
+  right: auto;
 }
 
 html[dir="rtl"] #btn-jump {
-  right: auto;
-  left: 30px;
+  right: 30px;
+  left: auto;
 }
 
 html[dir="rtl"] .puzzle-panel {

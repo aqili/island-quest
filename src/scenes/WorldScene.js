@@ -544,10 +544,10 @@ function _buildSign(scene, x, z, text, color) {
   const dt  = new BABYLON.DynamicTexture("signTex_" + x, { width: 512, height: 180 }, scene);
   const ctx = dt.getContext();
 
-  // Pre-flip canvas so BabylonJS's natural UV-mirroring on a box cancels it out
+  // Pre-flip canvas: signs face player from +Z, box +Z face is h+v flipped → cancel both
   ctx.save();
-  ctx.translate(512, 0);
-  ctx.scale(-1, 1);
+  ctx.translate(512, 180);
+  ctx.scale(-1, -1);
 
   // Background
   ctx.fillStyle = "#1a0e04";
