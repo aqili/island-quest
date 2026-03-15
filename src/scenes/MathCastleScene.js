@@ -551,18 +551,14 @@ function _buildDoorSign(scene, idx, cx, dz, accentColor) {
   //   Room 2 (idx=2): vertical flip only
   //   Room 3 (idx=3): both horizontal + vertical
   ctx.save();
-  if (idx === 0 || idx === 2) {
-    // vertical flip
-    ctx.translate(0, H);
-    ctx.scale(1, -1);
-  } else if (idx === 1) {
-    // horizontal flip
-    ctx.translate(W, 0);
-    ctx.scale(-1, 1);
-  } else {
-    // idx === 3: both flips
+  if (idx === 3) {
+    // Room 4: horizontal + vertical flip
     ctx.translate(W, H);
     ctx.scale(-1, -1);
+  } else {
+    // Rooms 1, 2, 3: horizontal flip only
+    ctx.translate(W, 0);
+    ctx.scale(-1, 1);
   }
 
   ctx.fillStyle = "#1a0e04"; ctx.fillRect(0, 0, W, H);
