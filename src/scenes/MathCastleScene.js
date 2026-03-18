@@ -73,7 +73,7 @@ const ROOMS = [
     accentColor: new BABYLON.Color3(0.95, 0.82, 0.18) },
 ];
 
-const DESIRED_RADIUS = 14;
+const DESIRED_RADIUS = 18;
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ export function createMathCastleScene(engine, onExit) {
   player.mesh.position.set(0, 0.5, 6);
   player.camera.radius           = DESIRED_RADIUS;
   player.camera.lowerRadiusLimit = 2;
-  player.camera.upperRadiusLimit = 35;
+  player.camera.upperRadiusLimit = 50;
   player.camera.lowerBetaLimit   = 0.2;
   player.camera.upperBetaLimit   = Math.PI / 2.05;
 
@@ -158,7 +158,7 @@ export function createMathCastleScene(engine, onExit) {
         const safe = Math.min(DESIRED_RADIUS, dL * 0.85, dR * 0.85, dB * 0.85, dF * 0.85);
         const r    = Math.max(3.0, safe);
         player.camera.radius           = BABYLON.Scalar.Lerp(player.camera.radius, r, 0.15);
-        player.camera.upperRadiusLimit = Math.max(r + 4, 12);
+        player.camera.upperRadiusLimit = Math.max(r + 8, 18);
       }
 
       // Exit back to world (Room 0, behind start)

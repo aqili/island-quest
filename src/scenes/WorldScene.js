@@ -203,6 +203,16 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
     }
   });
 
+  // ── Deferred GLTF decoration loading ─────────────────────────────────────
+  // Load procedural world first (instant), then lazy-load GLTF models after
+  // the first frames have rendered so the player sees the world immediately.
+  setTimeout(() => {
+    _decorateMedievalIsland(scene, -30,   0);  // Math Island
+    _decorateMedievalIsland(scene,  30,   0);  // Language Island
+    _decorateMedievalIsland(scene,   0, -55);  // Letters Island
+    _decorateMedievalIsland(scene,   0,  55);  // Numbers Island
+  }, 100);
+
   return scene;
 }
 
@@ -275,9 +285,6 @@ function _buildMathIsland(scene) {
   // Lamp posts along path
   _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(1.0, 0.95, 0.6));
   _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(1.0, 0.95, 0.6));
-
-  // Medieval props (async, non-blocking)
-  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 // ── Language Island ───────────────────────────────────────────────────────────
@@ -308,9 +315,6 @@ function _buildLangIsland(scene) {
 
   _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(0.8, 0.6, 1.0));
   _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(0.8, 0.6, 1.0));
-
-  // Medieval props (async, non-blocking)
-  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 // ── Shared builders ───────────────────────────────────────────────────────────
@@ -638,9 +642,6 @@ function _buildLettersIsland(scene) {
   // Two houses on the island
   _buildHouse(scene, OX - 6, OZ - 2, new BABYLON.Color3(0.90, 0.85, 0.70), new BABYLON.Color3(0.65, 0.20, 0.10));
   _buildHouse(scene, OX + 6, OZ - 2, new BABYLON.Color3(0.80, 0.90, 0.78), new BABYLON.Color3(0.20, 0.55, 0.30));
-
-  // Medieval props (async, non-blocking)
-  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 function _buildHouse(scene, x, z, wallColor, roofColor) {
@@ -923,13 +924,10 @@ function _buildNumbersIsland(scene) {
 
   _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(0.90, 0.80, 0.20));
   _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(0.90, 0.80, 0.20));
-
-  // Medieval props (async, non-blocking)
-  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 // ── Medieval island decoration (async / fire-and-forget) ────────────────────
-// Reduced prop set for fast loading — only castle entrance door and tower roofs.
+// Enhanced prop set — realistic medieval decorations loaded after world is visible.
 function _decorateMedievalIsland(scene, cx, cz) {
   const jobs = [];
 
@@ -943,6 +941,40 @@ function _decorateMedievalIsland(scene, cx, cz) {
   // Castle entrance door frame
   jobs.push(placeMedieval(scene, "DoorFrame_Round_Brick",
     cx, 0.05, cz + 2.95, 0, 0.95));
+
+  // Wall arch above entrance
+  jobs.push(placeMedieval(scene, "Wall_Arch",
+    cx, 2.55, cz + 2.95, 0, 0.80));
+
+  // Open window shutters on front wall
+  jobs.push(placeMedieval(scene, "WindowShutters_Wide_Round_Open",
+    cx - 2.0, 2.8, cz + 2.88, 0, 0.55));
+  jobs.push(placeMedieval(scene, "WindowShutters_Wide_Round_Open",
+    cx + 2.0, 2.8, cz + 2.88, 0, 0.55));
+
+  // Balcony on front face
+  jobs.push(placeMedieval(scene, "Balcony_Simple_Straight",
+    cx, 3.6, cz + 3.0, 0, 0.60));
+
+  // Wooden crate near entrance
+  jobs.push(placeMedieval(scene, "Prop_Crate",
+    cx + 1.8, 0.0, cz + 4.2, 0.3, 0.50));
+
+  // Chimney on roof
+  jobs.push(placeMedieval(scene, "Prop_Chimney",
+    cx - 1.5, 4.5, cz - 1.0, 0, 0.55));
+
+  // Vines on side walls for organic feel
+  jobs.push(placeMedieval(scene, "Prop_Vine1",
+    cx - 3.3, 2.0, cz + 1.5, 0, 0.65));
+  jobs.push(placeMedieval(scene, "Prop_Vine2",
+    cx + 3.3, 2.0, cz - 1.5, Math.PI, 0.65));
+
+  // Metal fence on one side of the castle entrance path
+  jobs.push(placeMedieval(scene, "Prop_MetalFence_Ornament",
+    cx - 1.8, 0.0, cz + 5.5, 0, 0.50));
+  jobs.push(placeMedieval(scene, "Prop_MetalFence_Ornament",
+    cx + 1.8, 0.0, cz + 5.5, 0, 0.50));
 
   Promise.all(jobs).catch(e => console.warn("[MedievalDecor] Batch load error:", e));
 }

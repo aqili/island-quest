@@ -22,7 +22,7 @@ export function createNumbersCastleScene(engine, onExit) {
   const ROOM_LENGTH   = 30;
   const ROOM_HEIGHT   = 7.0;
   const NUM_ROOMS     = 4;
-  const DESIRED_RADIUS = 16;
+  const DESIRED_RADIUS = 20;
 
   // ── Pick a random puzzle ────────────────────────────────────────────────────
   const puzzleData   = NUMBER_PUZZLES[Math.floor(Math.random() * NUMBER_PUZZLES.length)];
@@ -535,7 +535,7 @@ export function createNumbersCastleScene(engine, onExit) {
 
   player.camera.radius           = DESIRED_RADIUS;
   player.camera.lowerRadiusLimit = 2;
-  player.camera.upperRadiusLimit = 35;
+  player.camera.upperRadiusLimit = 50;
   player.camera.lowerBetaLimit   = 0.2;
   player.camera.upperBetaLimit   = Math.PI / 2.05;
 
@@ -766,7 +766,7 @@ export function createNumbersCastleScene(engine, onExit) {
       const dRight    = Math.max(0.5, hw - px);
       const safe = Math.min(DESIRED_RADIUS, dBack * 0.85, dFront * 0.85, dLeft * 0.85, dRight * 0.85);
       player.camera.radius = BABYLON.Scalar.Lerp(player.camera.radius, Math.max(3.5, safe), 0.15);
-      player.camera.upperRadiusLimit = Math.max(Math.max(3.5, safe) + 4, 12);
+      player.camera.upperRadiusLimit = Math.max(Math.max(3.5, safe) + 8, 18);
 
       // Exit
       if (pz < -1.5 && typeof onExit === "function") onExit();
