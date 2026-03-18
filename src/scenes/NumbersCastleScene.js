@@ -11,6 +11,7 @@ import { SaveManager }     from "../utils/SaveManager.js";
 import { spawnConfetti }  from "../puzzles/confetti.js";
 import { t }              from "../utils/i18n.js";
 import { SoundManager }   from "../utils/SoundManager.js";
+import { medMaterial }    from "../utils/MedievalLoader.js";
 
 export function createNumbersCastleScene(engine, onExit) {
   const BABYLON = window.BABYLON;
@@ -57,37 +58,19 @@ export function createNumbersCastleScene(engine, onExit) {
     return m;
   }
 
-  // Deep blue/gold theme
-  const wallMat    = stdMat("nWallMat",    0.18, 0.28, 0.55);
-  const floorMat   = stdMat("nFloorMat",   0.10, 0.16, 0.38);
-  const stoneMat   = stdMat("nStoneMat",   0.22, 0.32, 0.58);
+  // Deep blue/gold theme — now textured with medieval pack
+  const wallMat  = medMaterial(scene, "UnevenBrick", "nWallMat",  4, 6);
+  wallMat.diffuseColor  = new BABYLON.Color3(0.18, 0.28, 0.55);
+  const floorMat = medMaterial(scene, "WoodDark",    "nFloorMat", 6, 8);
+  floorMat.diffuseColor = new BABYLON.Color3(0.10, 0.16, 0.38);
+  const stoneMat = medMaterial(scene, "RockTrim",    "nStoneMat", 3, 5);
+  stoneMat.diffuseColor = new BABYLON.Color3(0.22, 0.32, 0.58);
   const goldMat    = stdMat("nGoldMat",    0.82, 0.67, 0.10, 0.22, 0.14, 0.00);
   const cyanMat    = stdMat("nCyanMat",    0.10, 0.75, 0.95, 0.02, 0.28, 0.38);
 
-  // Tiled floor for vault hall
-  function _makeTiledFloor(name) {
-    const mat = new BABYLON.StandardMaterial(name, scene);
-    try {
-      const dt = new BABYLON.DynamicTexture(name + "_dt", { width: 256, height: 256 }, scene, false);
-      const ctx = dt.getContext();
-      ctx.fillStyle = "#060d24";
-      ctx.fillRect(0, 0, 256, 256);
-      ctx.strokeStyle = "#1a2a5e";
-      ctx.lineWidth = 2;
-      for (let i = 0; i <= 256; i += 64) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(256, i); ctx.stroke();
-      }
-      dt.update();
-      mat.diffuseTexture        = dt;
-      mat.diffuseTexture.uScale = ROOM_WIDTH  / 2.5;
-      mat.diffuseTexture.vScale = ROOM_LENGTH / 2.5;
-    } catch(e) {
-      mat.diffuseColor = new BABYLON.Color3(0.06, 0.10, 0.24);
-    }
-    return mat;
-  }
-  const tiledFloorMat = _makeTiledFloor("nTiledFloor");
+  // Tiled floor for vault hall — use Brick texture
+  const tiledFloorMat = medMaterial(scene, "Brick", "nTiledFloor", 8, 5);
+  tiledFloorMat.diffuseColor = new BABYLON.Color3(0.08, 0.12, 0.30);
 
   // ── Overlay & HUD ───────────────────────────────────────────────────────────
   const overlay = document.getElementById("ui-overlay");

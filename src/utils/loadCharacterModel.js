@@ -56,10 +56,16 @@ export async function loadCharacterModel(scene, modelPath) {
  */
 export function playAnimation(animGroups, name, loop = true) {
   if (!animGroups || !name) return null;
-  const group = animGroups.find(g => g.name === name);
-  if (!group) return null;
-  group.start(loop);
-  return group;
+  const lname = name.toLowerCase();
+  // Play ALL groups whose name matches: exact OR ends with "|<name>" (handles
+  // both short "run" and Blender-exported "Root.001|Root|Run" duplicates)
+  const matches = animGroups.filter(g =>
+    g.name === name ||
+    g.name.toLowerCase().endsWith('|' + lname)
+  );
+  if (matches.length === 0) return null;
+  matches.forEach(g => g.start(loop));
+  return matches[0];
 }
 
 /**

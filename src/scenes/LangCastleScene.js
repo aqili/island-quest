@@ -9,6 +9,7 @@ import { createPlayer }  from "../entities/Player.js";
 import { showPuzzle }    from "../puzzles/LangPuzzleUI.js";
 import { langPuzzles }   from "../data/langPuzzles.js";
 import { SaveManager }   from "../utils/SaveManager.js";
+import { medMaterial }   from "../utils/MedievalLoader.js";
 
 const BABYLON = window.BABYLON;
 
@@ -140,14 +141,12 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   const wallMidY = ROOM_HEIGHT / 2;       // 3.5
 
   // ── Materials ──────────────────────────────────────────────────────────
-  const stoneMat = new BABYLON.StandardMaterial("lStone_" + idx, scene);
-  stoneMat.diffuseColor  = wallColor;
-  stoneMat.specularColor = new BABYLON.Color3(0.06, 0.06, 0.12);
+  const stoneMat = medMaterial(scene, "Plaster", "lStone_" + idx, 4, 6);
+  stoneMat.diffuseColor = wallColor;
 
-  const floorMat = new BABYLON.StandardMaterial("lFloor_" + idx, scene);
+  const floorMat = medMaterial(scene, "WoodDark", "lFloor_" + idx, 6, 10);
   floorMat.diffuseColor  = new BABYLON.Color3(
     wallColor.r * 0.74, wallColor.g * 0.70, wallColor.b * 0.82);
-  floorMat.specularColor = new BABYLON.Color3(0.12, 0.10, 0.20);
   floorMat.specularPower = 40;
 
   const ceilMat = new BABYLON.StandardMaterial("lCeil_" + idx, scene);
@@ -184,10 +183,9 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   rWall.material = stoneMat;
 
   // ── Stone pillars — 3 pairs ────────────────────────────────────────────
-  const pillarMat = new BABYLON.StandardMaterial("lPillar_" + idx, scene);
+  const pillarMat = medMaterial(scene, "RockTrim", "lPillar_" + idx, 1, 4);
   pillarMat.diffuseColor  = new BABYLON.Color3(
     wallColor.r * 0.88, wallColor.g * 0.84, wallColor.b * 0.94);
-  pillarMat.specularColor = new BABYLON.Color3(0.10, 0.08, 0.14);
 
   [8, 20, 32].forEach((pz, pi) => {
     [-20.0, 20.0].forEach((px, pxi) => {

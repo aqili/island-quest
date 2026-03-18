@@ -9,6 +9,7 @@ import { createPlayer }   from "../entities/Player.js";
 import { LETTER_WORDS }   from "../data/lettersPuzzles.js";
 import { SaveManager }    from "../utils/SaveManager.js";
 import { t }              from "../utils/i18n.js";
+import { medMaterial }    from "../utils/MedievalLoader.js";
 
 export function createLettersCastleScene(engine, onExit) {
   const BABYLON = window.BABYLON;
@@ -57,38 +58,20 @@ export function createLettersCastleScene(engine, onExit) {
     return m;
   }
 
-  const wallMat    = stdMat("wallMat",    0.22, 0.48, 0.44);
-  const floorMat   = stdMat("floorMat",   0.12, 0.32, 0.30);
+  const wallMat  = medMaterial(scene, "UnevenBrick", "wallMat",  4, 6);
+  wallMat.diffuseColor  = new BABYLON.Color3(0.22, 0.48, 0.44);
+  const floorMat = medMaterial(scene, "WoodDark",    "floorMat", 6, 8);
+  floorMat.diffuseColor = new BABYLON.Color3(0.12, 0.32, 0.30);
   const ceilMat    = stdMat("ceilMat",    0.08, 0.22, 0.20);
-  const stoneMat   = stdMat("stoneMat",   0.28, 0.52, 0.50);
+  const stoneMat   = medMaterial(scene, "RockTrim",   "stoneMat", 3, 5);
+  stoneMat.diffuseColor = new BABYLON.Color3(0.28, 0.52, 0.50);
   const goldMat    = stdMat("goldMat",    0.82, 0.67, 0.10, 0.22, 0.14, 0.00);
   const tealMat    = stdMat("tealMat",    0.10, 0.75, 0.65, 0.02, 0.28, 0.22);
   const crystalMat = stdMat("crystalMat", 0.45, 0.10, 0.80, 0.20, 0.02, 0.48);
 
-  // Tiled floor for assembly room
-  function _makeTiledFloor(name) {
-    const mat = new BABYLON.StandardMaterial(name, scene);
-    try {
-      const dt = new BABYLON.DynamicTexture(name + "_dt", { width: 256, height: 256 }, scene, false);
-      const ctx = dt.getContext();
-      ctx.fillStyle = "#0a2e28";
-      ctx.fillRect(0, 0, 256, 256);
-      ctx.strokeStyle = "#124038";
-      ctx.lineWidth = 2;
-      for (let i = 0; i <= 256; i += 64) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(256, i); ctx.stroke();
-      }
-      dt.update();
-      mat.diffuseTexture        = dt;
-      mat.diffuseTexture.uScale = ROOM_WIDTH  / 2.5;
-      mat.diffuseTexture.vScale = ROOM_LENGTH / 2.5;
-    } catch(e) {
-      mat.diffuseColor = new BABYLON.Color3(0.08, 0.28, 0.25);
-    }
-    return mat;
-  }
-  const tiledFloorMat = _makeTiledFloor("tiledFloor");
+  // Tiled floor for assembly room — use Brick texture from medieval pack
+  const tiledFloorMat = medMaterial(scene, "Brick", "tiledFloor", 8, 5);
+  tiledFloorMat.diffuseColor = new BABYLON.Color3(0.10, 0.30, 0.28);
 
   // ── Build rooms ─────────────────────────────────────────────────────────────
   for (let r = 0; r < NUM_ROOMS; r++) _buildRoom(r);

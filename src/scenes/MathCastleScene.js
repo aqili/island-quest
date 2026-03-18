@@ -19,6 +19,7 @@ import { showPuzzle }    from "../puzzles/MathPuzzleUI.js";
 import { mathPuzzles }   from "../data/mathPuzzles.js";
 import { SaveManager }   from "../utils/SaveManager.js";
 import { SoundManager }  from "../utils/SoundManager.js";
+import { medMaterial, placeMedieval } from "../utils/MedievalLoader.js";
 
 const BABYLON = window.BABYLON;
 
@@ -223,18 +224,24 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   const ez       = ENTER_Z(idx);
 
   // ── Materials ─────────────────────────────────────────────────────────
-  const stoneMat = _mat(scene, "stone_" + idx, wallColor, 0.06);
+  // Use UnevenBrick for walls, tinted to each room's colour theme
+  const stoneMat = medMaterial(scene, "UnevenBrick", "stone_" + idx, 3, 5);
+  stoneMat.diffuseColor = new BABYLON.Color3(
+    wallColor.r * 0.88, wallColor.g * 0.86, wallColor.b * 0.82);
 
-  const floorMat = _mat(scene, "floor_" + idx,
-    new BABYLON.Color3(wallColor.r * 0.75, wallColor.g * 0.72, wallColor.b * 0.66), 0.08);
+  // Wood floor with tile-line overlay
+  const floorMat = medMaterial(scene, "WoodTrim", "floor_" + idx, 5, 8);
+  floorMat.diffuseColor = new BABYLON.Color3(
+    wallColor.r * 0.62, wallColor.g * 0.60, wallColor.b * 0.54);
   floorMat.specularPower = 28;
-  _applyTileTexture(scene, floorMat, wallColor, 11, 19);
 
   const ceilMat = _mat(scene, "ceil_" + idx,
     new BABYLON.Color3(wallColor.r * 0.40, wallColor.g * 0.38, wallColor.b * 0.35), 0.0);
 
-  const pillarMat = _mat(scene, "pillar_" + idx,
-    new BABYLON.Color3(wallColor.r * 0.90, wallColor.g * 0.88, wallColor.b * 0.84), 0.06);
+  // Pillars — RockTrim textured, in the accent colour
+  const pillarMat = medMaterial(scene, "RockTrim", "pillar_" + idx, 1, 3);
+  pillarMat.diffuseColor = new BABYLON.Color3(
+    wallColor.r * 0.90, wallColor.g * 0.88, wallColor.b * 0.84);
 
   // ── Floor ─────────────────────────────────────────────────────────────
   box("floor_" + idx, scene, ROOM_W, 0.22, ROOM_L, cx, 0.11, ROOM_L / 2, floorMat);
@@ -437,10 +444,14 @@ function _buildConnector(scene, connIdx, wallColor, accentColor, torchLights) {
   const c        = CONN[connIdx];
   const wallMidY = ROOM_H / 2;
 
-  const stoneMat = _mat(scene, "cStone_" + connIdx,
-    new BABYLON.Color3(wallColor.r * 0.78, wallColor.g * 0.76, wallColor.b * 0.72), 0.0);
-  const floorMat = _mat(scene, "cFloor_" + connIdx,
-    new BABYLON.Color3(wallColor.r * 0.58, wallColor.g * 0.56, wallColor.b * 0.52), 0.0);
+  const stoneMat = medMaterial(scene, "Brick", "cStone_" + connIdx, 2, 3);
+  stoneMat.diffuseColor = new BABYLON.Color3(
+    wallColor.r * 0.78, wallColor.g * 0.76, wallColor.b * 0.72);
+
+  const floorMat = medMaterial(scene, "RedBrick", "cFloor_" + connIdx, 3, 3);
+  floorMat.diffuseColor = new BABYLON.Color3(
+    wallColor.r * 0.58, wallColor.g * 0.56, wallColor.b * 0.52);
+
   const ceilMat  = _mat(scene, "cCeil_" + connIdx,
     new BABYLON.Color3(wallColor.r * 0.36, wallColor.g * 0.34, wallColor.b * 0.30), 0.0);
   const carpMat  = _mat(scene, "cCarp_" + connIdx,

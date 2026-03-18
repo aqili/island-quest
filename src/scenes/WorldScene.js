@@ -8,6 +8,7 @@ import { createPlayer } from "../entities/Player.js";
 import { SaveManager }   from "../utils/SaveManager.js";
 import { loadCharacterModel, playAnimation } from "../utils/loadCharacterModel.js";
 import { NPC_CHARACTERS, NPC_PRESETS } from "../data/characters.js";
+import { medMaterial, placeMedieval, placeMany } from "../utils/MedievalLoader.js";
 
 
 const BABYLON = window.BABYLON;
@@ -266,6 +267,9 @@ function _buildMathIsland(scene) {
   // Lamp posts along path
   _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(1.0, 0.95, 0.6));
   _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(1.0, 0.95, 0.6));
+
+  // Medieval props (async, non-blocking)
+  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 // ── Language Island ───────────────────────────────────────────────────────────
@@ -296,6 +300,9 @@ function _buildLangIsland(scene) {
 
   _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(0.8, 0.6, 1.0));
   _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(0.8, 0.6, 1.0));
+
+  // Medieval props (async, non-blocking)
+  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 // ── Shared builders ───────────────────────────────────────────────────────────
@@ -337,19 +344,20 @@ function _buildRocks(scene, cx, cz, color, count) {
 }
 
 function _buildCastle(scene, cx, cz, wallColor, towerColor, roofColor) {
-  const mat = new BABYLON.StandardMaterial("castleMat_" + cx, scene);
-  mat.diffuseColor = wallColor;
-  // Stone-like specular
-  mat.specularColor = new BABYLON.Color3(0.15, 0.15, 0.15);
+  // Castle walls — UnevenBrick texture (keeps the color theme as tint)
+  const mat = medMaterial(scene, "UnevenBrick", "castleMat_" + cx, 3, 2);
+  mat.diffuseColor = wallColor;   // tints the texture with the island theme colour
 
-  const towerMat = new BABYLON.StandardMaterial("towerMat_" + cx, scene);
+  // Tower body — RockTrim texture
+  const towerMat = medMaterial(scene, "RockTrim", "towerMat_" + cx, 2, 3);
   towerMat.diffuseColor = towerColor;
-  towerMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
 
-  const roofMat = new BABYLON.StandardMaterial("roofMat_" + cx, scene);
+  // Roofs — RoundTiles texture
+  const roofMat = medMaterial(scene, "RoundTiles", "roofMat_" + cx, 2, 2);
   roofMat.diffuseColor = roofColor;
 
-  const battleMat = new BABYLON.StandardMaterial("battleMat_" + cx, scene);
+  // Battlements — slightly darker UnevenBrick
+  const battleMat = medMaterial(scene, "UnevenBrick", "battleMat_" + cx, 2, 1);
   battleMat.diffuseColor = new BABYLON.Color3(
     towerColor.r * 0.85, towerColor.g * 0.85, towerColor.b * 0.85);
 
@@ -627,6 +635,9 @@ function _buildLettersIsland(scene) {
   _buildLetterDecoration(scene, OX - 2, OZ + 5, "A");
   _buildLetterDecoration(scene, OX + 2, OZ + 5, "B");
   _buildLetterDecoration(scene, OX,     OZ + 6, "C");
+
+  // Medieval props (async, non-blocking)
+  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 function _buildHouse(scene, x, z, wallColor, roofColor) {
@@ -914,6 +925,64 @@ function _buildNumbersIsland(scene) {
   _buildLetterDecoration(scene, OX - 2, OZ + 5, "1");
   _buildLetterDecoration(scene, OX + 2, OZ + 5, "2");
   _buildLetterDecoration(scene, OX,     OZ + 6, "3");
+
+  // Medieval props (async, non-blocking)
+  _decorateMedievalIsland(scene, OX, OZ);
+}
+
+// ── Medieval island decoration (async / fire-and-forget) ────────────────────
+async function _decorateMedievalIsland(scene, cx, cz) {
+  // ── Wooden fence ring around island perimeter ─────────────────────────────
+  const fenceAngles = [0, 45, 90, 135, 180, 225, 270, 315];
+  for (const deg of fenceAngles) {
+    const a  = deg * Math.PI / 180;
+    const r  = 10.2;
+    await placeMedieval(scene, "Prop_WoodenFence_Single",
+      cx + Math.cos(a) * r, 0.05, cz + Math.sin(a) * r,
+      a + Math.PI / 2,  // face outward
+      0.85);
+  }
+
+  // ── Tower roofs (sit on top of existing procedural towers) ────────────────
+  // Tower positions relative to castle center: (±3.25, ±2.75)
+  const towerOffsets = [[-3.25, -2.75], [3.25, -2.75], [-3.25, 2.75], [3.25, 2.75]];
+  for (const [tx, tz] of towerOffsets) {
+    await placeMedieval(scene, "Roof_Tower_RoundTiles",
+      cx + tx, 6.55, cz + tz, 0, 1.05);
+  }
+
+  // ── Castle entrance door frame ─────────────────────────────────────────────
+  await placeMedieval(scene, "DoorFrame_Round_Brick",
+    cx, 0.05, cz + 2.95, 0, 0.95);
+
+  // ── Vines on castle walls ──────────────────────────────────────────────────
+  await placeMedieval(scene, "Prop_Vine1",
+    cx - 3.0, 0.05, cz + 2.9, Math.PI * 0.08, 1.1);
+  await placeMedieval(scene, "Prop_Vine2",
+    cx + 3.0, 0.05, cz + 2.9, -Math.PI * 0.08, 1.1);
+  await placeMedieval(scene, "Prop_Vine4",
+    cx - 3.3, 0.05, cz - 2.8, Math.PI, 1.0);
+  await placeMedieval(scene, "Prop_Vine5",
+    cx + 3.3, 0.05, cz - 2.8, Math.PI, 1.0);
+
+  // ── Crates near castle entrance ────────────────────────────────────────────
+  await placeMedieval(scene, "Prop_Crate",
+    cx - 2.6, 0.05, cz + 5.0, 0.4, 0.70);
+  await placeMedieval(scene, "Prop_Crate",
+    cx + 2.6, 0.05, cz + 5.0, -0.5, 0.70);
+  // Stacked crate
+  await placeMedieval(scene, "Prop_Crate",
+    cx - 2.6, 0.52, cz + 4.8, 0.8, 0.55);
+
+  // ── Wagon to the side of the castle ───────────────────────────────────────
+  await placeMedieval(scene, "Prop_Wagon",
+    cx - 6.2, 0.05, cz - 1.5, 0.6, 0.80);
+
+  // ── Brick path from castle door toward island edge ────────────────────────
+  for (let i = 0; i < 4; i++) {
+    await placeMedieval(scene, "Floor_Brick",
+      cx, 0.05, cz + 3.8 + i * 1.0, 0, 1.0);
+  }
 }
 
 // ── Horse ──────────────────────────────────────────────────────────────────────

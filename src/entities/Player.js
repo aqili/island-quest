@@ -10,7 +10,7 @@
  * API (unchanged):  createPlayer(scene)  →  { mesh, update, camera }
  */
 
-import { getCharacter }       from "../data/characters.js";
+import { getCharacter, DEFAULT_CHARACTER_ID } from "../data/characters.js";
 import { loadCharacterModel, playAnimation, stopAllAnimations }
                                from "../utils/loadCharacterModel.js";
 
@@ -18,8 +18,8 @@ export function createPlayer(scene) {
   const BABYLON = window.BABYLON;
 
   // ── Determine selected character ─────────────────────────────────────────
-  let _charId = "procedural";
-  try { _charId = localStorage.getItem("iq_character") || "procedural"; } catch(e) {}
+  let _charId = DEFAULT_CHARACTER_ID;
+  try { _charId = localStorage.getItem("iq_character") || DEFAULT_CHARACTER_ID; } catch(e) {}
   const _charDef = getCharacter(_charId);
 
   // ── Load avatar config from localStorage ─────────────────────────────────
@@ -404,12 +404,54 @@ export function createPlayer(scene) {
       const glbRoot = result.root;
       _glbAnimGroups = result.animationGroups;
 
-      // Fix scale & parent under player root
+      // Parent first, then set LOCAL transforms
       glbRoot.parent   = root;
       glbRoot.position = new BABYLON.Vector3(0, -0.5 + (_charDef.yOffset || 0), 0);
-      glbRoot.scaling  = new BABYLON.Vector3(
-        _charDef.scale, _charDef.scale, _charDef.scale
-      );
+      glbRoot.scaling  = new BABYLON.Vector3(_charDef.scale, _charDef.scale, _charDef.scale);
+
+      // Optional facing correction — set facingOffset in characters.js to tune.
+      glbRoot.rotation.y += (_charDef.facingOffset ?? 0);
+
+      // Remove root-motion translation channels (Hips/Root position tracks)
+      // that fight with our own movement code, causing spinning/jitter.
+      _glbAnimGroups.forEach(group => {
+        const toRemove = group.targetedAnimations.filter(ta => {
+          const rootBone = /Hips|HipsCtrl|Root/i.test(ta.target?.name ?? "");
+          const isPosAnim = (ta.animation?.targetProperty ?? "").includes("position");
+          return rootBone && isPosAnim;
+        });
+        toRemove.forEach(ta => group.removeTargetedAnimation(ta));
+      });
+
+      // Force all child meshes visible + convert PBR→Standard so they
+      // render correctly without an HDR environment texture
+      result.meshes.forEach(m => {
+        m.isVisible  = true;
+        m.isPickable = false;
+        if (m.material) {
+          const className = m.material.getClassName ? m.material.getClassName() : "";
+          if (className.startsWith("PBR")) {
+            const pbr = m.material;
+            const std = new BABYLON.StandardMaterial(pbr.name + "_std", scene);
+            // Carry over the albedo (skin) texture if present
+            if (pbr.albedoTexture)       std.diffuseTexture = pbr.albedoTexture;
+            else if (pbr.albedoColor)    std.diffuseColor   = new BABYLON.Color3(pbr.albedoColor.r, pbr.albedoColor.g, pbr.albedoColor.b);
+            if (pbr.bumpTexture)         std.bumpTexture    = pbr.bumpTexture;
+            std.backFaceCulling = false;
+            std.specularColor   = new BABYLON.Color3(0.1, 0.1, 0.1);
+            m.material = std;
+          } else {
+            m.material.backFaceCulling = false;
+          }
+        }
+      });
+
+      // Log bounding info to help diagnose scale/position issues
+      const bb = glbRoot.getHierarchyBoundingVectors(true);
+      console.log("[Player] GLB loaded:", _charDef.id,
+        "| meshes:", result.meshes.length,
+        "| anims:", _glbAnimGroups.map(g => g.name),
+        "| worldBB min:", bb.min.toString(), "max:", bb.max.toString());
 
       // Hide procedural parts
       _setProceduralVisible(false);
