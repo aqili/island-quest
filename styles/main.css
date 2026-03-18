@@ -479,6 +479,49 @@ body {
   transform: translateY(1px);
 }
 
+/* ===== World loading overlay ===== */
+#world-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0b2545, #13547a, #1a6fa8);
+  transition: opacity 0.5s ease;
+}
+#world-loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ===== Speed toggle button ===== */
+#btn-speed {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.0rem;
+  padding: 5px 14px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  white-space: nowrap;
+}
+#btn-speed:hover {
+  background: rgba(255, 255, 255, 0.30);
+  transform: translateY(-2px);
+}
+#btn-speed:active {
+  transform: translateY(1px);
+}
+#btn-speed.active {
+  background: rgba(255, 180, 50, 0.45);
+  color: #ffe066;
+}
+
 /* ===== Virtual Joystick ===== */
 #joy-wrap {
   position: fixed;
@@ -636,6 +679,10 @@ body {
     padding: 4px 10px;
   }
   #btn-restart, #btn-change-char {
+    font-size: 0.85rem;
+    padding: 4px 10px;
+  }
+  #btn-speed {
     font-size: 0.85rem;
     padding: 4px 10px;
   }

@@ -132,42 +132,22 @@ export function createLettersCastleScene(engine, onExit) {
     _buildWallTorch( hw, baseZ + ROOM_LENGTH * 0.70, r);
   }
 
-  // ── Door wall (wall with a central opening) ─────────────────────────────────
+  // ── Open doorway arch between rooms (no solid wall) ──────────────────────────
   function _buildDoorWall(r, wallZ) {
     const hw    = ROOM_WIDTH / 2;
-    const doorW = 5.0;
     const doorH = 5.5;
-    const sideW = (ROOM_WIDTH - doorW) / 2;  // 10
 
-    // Left and right panels
-    const lp = BABYLON.MeshBuilder.CreateBox(`dwL_${r}`,
-      { width: sideW, height: ROOM_HEIGHT, depth: 0.4 }, scene);
-    lp.position.set(-hw + sideW / 2, ROOM_HEIGHT / 2, wallZ);
-    lp.material = wallMat;
-
-    const rp = BABYLON.MeshBuilder.CreateBox(`dwR_${r}`,
-      { width: sideW, height: ROOM_HEIGHT, depth: 0.4 }, scene);
-    rp.position.set(hw - sideW / 2, ROOM_HEIGHT / 2, wallZ);
-    rp.material = wallMat;
-
-    // Top lintel (above door)
-    const lintelH = ROOM_HEIGHT - doorH;
-    const tp = BABYLON.MeshBuilder.CreateBox(`dwT_${r}`,
-      { width: doorW, height: lintelH, depth: 0.4 }, scene);
-    tp.position.set(0, doorH + lintelH / 2, wallZ);
-    tp.material = wallMat;
-
-    // Glowing archway frame
-    for (const sx of [-doorW / 2, doorW / 2]) {
-      const fp = BABYLON.MeshBuilder.CreateBox(`dfr_${r}_${sx > 0 ? "R" : "L"}`,
-        { width: 0.4, height: doorH, depth: 0.6 }, scene);
+    // Glowing archway frame pillars flanking the opening
+    for (const sx of [-2.5, 2.5]) {
+      const fp = BABYLON.MeshBuilder.CreateCylinder(`dfr_${r}_${sx > 0 ? "R" : "L"}`,
+        { diameter: 0.5, height: doorH, tessellation: 10 }, scene);
       fp.position.set(sx, doorH / 2, wallZ);
       fp.material = stoneMat;
     }
 
     // Glowing arch top — teal emissive strip as visual invitation
     const arch = BABYLON.MeshBuilder.CreateBox(`darch_${r}`,
-      { width: doorW + 0.4, height: 0.25, depth: 0.5 }, scene);
+      { width: 5.4, height: 0.25, depth: 0.5 }, scene);
     arch.position.set(0, doorH + 0.12, wallZ);
     const archMat = new BABYLON.StandardMaterial(`darchMat_${r}`, scene);
     archMat.diffuseColor  = new BABYLON.Color3(0.10, 0.80, 0.65);

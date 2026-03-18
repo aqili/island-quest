@@ -263,6 +263,7 @@ export function createPlayer(scene) {
   });
 
   const SPEED = 0.15;
+  const RUN_SPEED = 0.30;
   let walkTime = 0;
 
   const CAM_ROT = 0.035;   // radians per frame for arrow-key camera rotation
@@ -316,8 +317,10 @@ export function createPlayer(scene) {
       const worldDx = dx * Math.cos(camYaw) - dz * Math.sin(camYaw);
       const worldDz = dx * Math.sin(camYaw) + dz * Math.cos(camYaw);
 
-      root.position.x += worldDx * SPEED;
-      root.position.z += worldDz * SPEED;
+      // Use run speed when shift is held or run mode is active
+      const spd = (keys["ShiftLeft"] || keys["ShiftRight"] || window.iq_runMode) ? RUN_SPEED : SPEED;
+      root.position.x += worldDx * spd;
+      root.position.z += worldDz * spd;
 
       if (worldDx !== 0 || worldDz !== 0) {
         root.rotation.y = Math.atan2(worldDx, worldDz);
@@ -325,13 +328,15 @@ export function createPlayer(scene) {
 
       // ── GLB: play walk/run animation ───────────────────────────────────
       if (_usingGLB) {
-        _switchGLBAnim(isJumping ? "jump" : "walk");
+        const isRun = keys["ShiftLeft"] || keys["ShiftRight"] || window.iq_runMode;
+        _switchGLBAnim(isJumping ? "jump" : (isRun ? "run" : "walk"));
       } else {
         // Procedural walk cycle (skip if mid-air)
         if (!isJumping) {
-          walkTime += 0.18;
-          const swing  = Math.sin(walkTime) * 0.55;
-          const legBob = Math.abs(Math.sin(walkTime)) * 0.04;
+          const isRun = keys["ShiftLeft"] || keys["ShiftRight"] || window.iq_runMode;
+          walkTime += isRun ? 0.28 : 0.18;
+          const swing  = Math.sin(walkTime) * (isRun ? 0.75 : 0.55);
+          const legBob = Math.abs(Math.sin(walkTime)) * (isRun ? 0.06 : 0.04);
 
           lArmPivot.rotation.x =  swing;
           rArmPivot.rotation.x = -swing;
@@ -464,5 +469,12 @@ export function createPlayer(scene) {
     });
   }
 
-  return { mesh: root, update, camera };
+  return {
+    mesh: root,
+    update,
+    camera,
+    /** Toggle or set run mode. */
+    setRunning(v) { window.iq_runMode = v; },
+    isRunning()   { return window.iq_runMode; }
+  };
 }

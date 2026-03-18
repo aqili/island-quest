@@ -136,29 +136,22 @@ export function createNumbersCastleScene(engine, onExit) {
     // Entrance arch for the last room — castle gate where player enters
     if (r === NUM_ROOMS - 1) {
       const entZ = baseZ + ROOM_LENGTH;
-      const enm = new BABYLON.StandardMaterial("nEntMat", scene);
-      enm.diffuseColor  = new BABYLON.Color3(0.22, 0.32, 0.65);
-      enm.emissiveColor = new BABYLON.Color3(0.04, 0.08, 0.20);
 
-      // Left and right pillar segments
-      [[-11, 18], [11, 18]].forEach(([dx, dw], j) => {
-        const seg = BABYLON.MeshBuilder.CreateBox(`nEntSeg_${j}`,
-          { width: dw, height: ROOM_HEIGHT, depth: 0.5 }, scene);
-        seg.position.set(dx, cy, entZ);
-        seg.material = stoneMat;
-      });
-      const topFill = BABYLON.MeshBuilder.CreateBox("nEntTop",
-        { width: 4.2, height: 2.6, depth: 0.5 }, scene);
-      topFill.position.set(0, 5.7, entZ);
-      topFill.material = stoneMat;
+      // Pillar columns flanking the entrance
+      for (const sx of [-2.5, 2.5]) {
+        const pillar = BABYLON.MeshBuilder.CreateCylinder(`nEntPil_${sx}`,
+          { diameter: 0.6, height: ROOM_HEIGHT, tessellation: 10 }, scene);
+        pillar.position.set(sx, cy, entZ);
+        pillar.material = stoneMat;
+      }
 
       // Gold arch above entrance
       const archMat = new BABYLON.StandardMaterial("nEntArch", scene);
       archMat.diffuseColor  = new BABYLON.Color3(0.85, 0.70, 0.10);
       archMat.emissiveColor = new BABYLON.Color3(0.30, 0.22, 0.00);
       const arch = BABYLON.MeshBuilder.CreateSphere("nEntArchM",
-        { diameterX: 4.2, diameterY: 1.6, diameterZ: 0.5, segments: 8 }, scene);
-      arch.position.set(0, 4.6, entZ);
+        { diameterX: 5.4, diameterY: 1.6, diameterZ: 0.5, segments: 8 }, scene);
+      arch.position.set(0, 5.6, entZ);
       arch.material = archMat;
 
       // Welcome banner
@@ -199,30 +192,25 @@ export function createNumbersCastleScene(engine, onExit) {
     }
   }
 
-  // ── Door wall ───────────────────────────────────────────────────────────────
+  // ── Open doorway arch between rooms (no solid wall) ─────────────────────────
   function _buildDoorWall(r, doorWallZ) {
-    const hw = ROOM_WIDTH / 2;
-    const cy = ROOM_HEIGHT / 2;
+    const doorH = 5.5;
 
-    [[-11, 18], [11, 18]].forEach(([dx, dw], j) => {
-      const seg = BABYLON.MeshBuilder.CreateBox(`nDwSeg_${r}_${j}`,
-        { width: dw, height: ROOM_HEIGHT, depth: 0.4 }, scene);
-      seg.position.set(dx, cy, doorWallZ);
-      seg.material = stoneMat;
-    });
-
-    const topFill = BABYLON.MeshBuilder.CreateBox(`nDwTop_${r}`,
-      { width: 4.2, height: 2.6, depth: 0.4 }, scene);
-    topFill.position.set(0, 5.7, doorWallZ);
-    topFill.material = stoneMat;
+    // Pillar columns flanking the opening
+    for (const sx of [-2.5, 2.5]) {
+      const pillar = BABYLON.MeshBuilder.CreateCylinder(`nDwPil_${r}_${sx}`,
+        { diameter: 0.5, height: doorH, tessellation: 10 }, scene);
+      pillar.position.set(sx, doorH / 2, doorWallZ);
+      pillar.material = stoneMat;
+    }
 
     // Arch above door
     const archMat = new BABYLON.StandardMaterial(`nArch_${r}`, scene);
     archMat.diffuseColor  = new BABYLON.Color3(0.55, 0.80, 1.0);
     archMat.emissiveColor = new BABYLON.Color3(0.05, 0.20, 0.45);
-    const arch = BABYLON.MeshBuilder.CreateSphere(`nArch_${r}`,
-      { diameterX: 4.2, diameterY: 1.6, diameterZ: 0.44, segments: 8 }, scene);
-    arch.position.set(0, 4.6, doorWallZ);
+    const arch = BABYLON.MeshBuilder.CreateSphere(`nArchM_${r}`,
+      { diameterX: 5.4, diameterY: 1.6, diameterZ: 0.44, segments: 8 }, scene);
+    arch.position.set(0, doorH + 0.12, doorWallZ);
     arch.material = archMat;
 
     // Pulsing door beacons

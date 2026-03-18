@@ -54,15 +54,33 @@ function switchScene(newScene) {
 
 function goToWorld() {
   SoundManager.startAmbient();
-  switchScene(
-    createWorldScene(
-      engine,
-      () => goToMathCastle(),      // onEnterMath
-      () => goToLangCastle(),      // onEnterLang
-      () => goToLettersCastle(),   // onEnterLetters
-      () => goToNumbersCastle()    // onEnterNumbers
-    )
+
+  // Show a lightweight loading overlay while the world scene compiles shaders
+  // and loads textures so the player sees castles immediately when it appears.
+  const worldLoading = document.createElement("div");
+  worldLoading.id = "world-loading";
+  worldLoading.innerHTML = `<p style="font-family:'Fredoka One',cursive;font-size:1.6rem;color:#ffe066;text-shadow:0 2px 8px rgba(0,0,0,0.5);">Loading world…</p>`;
+  document.body.appendChild(worldLoading);
+
+  const worldScene = createWorldScene(
+    engine,
+    () => goToMathCastle(),      // onEnterMath
+    () => goToLangCastle(),      // onEnterLang
+    () => goToLettersCastle(),   // onEnterLetters
+    () => goToNumbersCastle()    // onEnterNumbers
   );
+
+  // Wait for all textures / shaders to be ready before revealing the scene
+  worldScene.whenReadyAsync().then(() => {
+    switchScene(worldScene);
+    worldLoading.classList.add("hidden");
+    setTimeout(() => { if (worldLoading.parentNode) worldLoading.remove(); }, 600);
+  }).catch(() => {
+    // Fallback: show scene anyway after timeout
+    switchScene(worldScene);
+    worldLoading.classList.add("hidden");
+    setTimeout(() => { if (worldLoading.parentNode) worldLoading.remove(); }, 600);
+  });
 }
 
 function goToMathCastle() {
@@ -105,6 +123,17 @@ document.getElementById("btn-respawn").addEventListener("click", () => {
   if (overlay) { overlay.innerHTML = ""; overlay.classList.remove("active"); }
   goToWorld();
 });
+
+// ── Speed toggle button ──────────────────────────────────────────────────────
+window.iq_runMode = false;
+const btnSpeed = document.getElementById("btn-speed");
+if (btnSpeed) {
+  btnSpeed.addEventListener("click", () => {
+    window.iq_runMode = !window.iq_runMode;
+    btnSpeed.classList.toggle("active", window.iq_runMode);
+    btnSpeed.textContent = window.iq_runMode ? "🏃 Running" : "🏃 Run";
+  });
+}
 
 // ── Language toggle button ────────────────────────────────────────────────────
 
