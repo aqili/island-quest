@@ -103,6 +103,8 @@ export function createMathCastleScene(engine, onExit) {
   player.camera.radius           = DESIRED_RADIUS;
   player.camera.lowerRadiusLimit = 3;
   player.camera.upperRadiusLimit = 26;
+  player.camera.lowerBetaLimit   = 0.3;
+  player.camera.upperBetaLimit   = Math.PI / 2.15;
 
   // ── HUD ──────────────────────────────────────────────────────────────────
   const hudLocation = document.getElementById("hud-location");
@@ -156,7 +158,7 @@ export function createMathCastleScene(engine, onExit) {
         const safe = Math.min(DESIRED_RADIUS, dL * 0.85, dR * 0.85, dB * 0.85, dF * 0.85);
         const r    = Math.max(3.0, safe);
         player.camera.radius           = BABYLON.Scalar.Lerp(player.camera.radius, r, 0.15);
-        player.camera.upperRadiusLimit = r + 0.5;
+        player.camera.upperRadiusLimit = Math.max(r + 2, 8);
       }
 
       // Exit back to world (Room 0, behind start)

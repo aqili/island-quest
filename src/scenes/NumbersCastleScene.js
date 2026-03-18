@@ -298,25 +298,31 @@ export function createNumbersCastleScene(engine, onExit) {
   // ── Number room ─────────────────────────────────────────────────────────────
   function _buildNumberRoom(r, baseZ) {
     const midZ  = baseZ + ROOM_LENGTH / 2;
+    const hw    = ROOM_WIDTH / 2;
 
     // 2 tiles per room: indices (r-1)*2 and (r-1)*2+1
     const i0 = (r - 1) * 2;
     const i1 = i0 + 1;
 
+    // Wider scatter pool with more random placement across the room
     const positions = [
-      [-6, baseZ + 8],  [-6, baseZ + 20],
-      [ 6, baseZ + 8],  [ 6, baseZ + 20],
-      [-3, baseZ + 12], [ 3, baseZ + 18],
-      [-5, baseZ + 15], [ 5, baseZ + 10],
-      [ 0, baseZ + 14], [-4, baseZ + 22],
+      [-8, baseZ + 6],   [-8, baseZ + 16],  [-8, baseZ + 24],
+      [ 8, baseZ + 6],   [ 8, baseZ + 16],  [ 8, baseZ + 24],
+      [-4, baseZ + 10],  [ 4, baseZ + 10],
+      [-4, baseZ + 20],  [ 4, baseZ + 20],
+      [ 0, baseZ + 8],   [ 0, baseZ + 22],
+      [-6, baseZ + 13],  [ 6, baseZ + 13],
+      [-2, baseZ + 16],  [ 2, baseZ + 16],
     ];
-    // Pick 2 random spots for this room
-    const pool = positions.filter((_, idx) => idx < 10);
-    const picked = pool.sort(() => Math.random() - 0.5).slice(0, 2);
+    // Shuffle and pick 2 random spots
+    const picked = positions.sort(() => Math.random() - 0.5).slice(0, 2);
 
     [[i0, picked[0]], [i1, picked[1]]].forEach(([idx, pos]) => {
       if (idx >= TARGET_NUMS.length) return;
-      _buildNumberTile(idx, TARGET_NUMS[idx], pos[0], baseZ + (Math.random() * 20 + 5));
+      // Add extra random offset to each tile position
+      const rx = pos[0] + (Math.random() - 0.5) * 3;
+      const rz = pos[1] + (Math.random() - 0.5) * 4;
+      _buildNumberTile(idx, TARGET_NUMS[idx], rx, rz);
     });
 
     // Banner sign
@@ -343,12 +349,18 @@ export function createNumbersCastleScene(engine, onExit) {
     const root = new BABYLON.TransformNode(`nTile_${index}`, scene);
     root.position = new BABYLON.Vector3(x, 1.5, z);
 
-    // Base disc
+    // Unique hue per tile for visual variety
+    const hueShift = (index / Math.max(1, TARGET_NUMS.length));
+    const tileR = 0.85 + hueShift * 0.1;
+    const tileG = 0.70 - hueShift * 0.3;
+    const tileB = 0.10 + hueShift * 0.6;
+
+    // Base disc — larger and more colorful
     const discMat = new BABYLON.StandardMaterial(`nDisc_${index}`, scene);
-    discMat.diffuseColor  = new BABYLON.Color3(0.85, 0.70, 0.10);
-    discMat.emissiveColor = new BABYLON.Color3(0.25, 0.18, 0.00);
+    discMat.diffuseColor  = new BABYLON.Color3(tileR, tileG, tileB);
+    discMat.emissiveColor = new BABYLON.Color3(tileR * 0.3, tileG * 0.25, tileB * 0.1);
     const disc = BABYLON.MeshBuilder.CreateCylinder(`nDiscM_${index}`,
-      { diameter: 1.2, height: 0.18, tessellation: 12 }, scene);
+      { diameter: 1.6, height: 0.22, tessellation: 16 }, scene);
     disc.material = discMat;
     disc.parent   = root;
     disc.position.set(0, 0, 0);
@@ -358,7 +370,7 @@ export function createNumbersCastleScene(engine, onExit) {
     try {
       const dt = new BABYLON.DynamicTexture(`nNumTex_${index}`, { width: 128, height: 128 }, scene, false);
       const ctx = dt.getContext();
-      // Gold background
+      // Gradient-like background
       ctx.fillStyle = "#FFD700";
       ctx.fillRect(0, 0, 128, 128);
       // Border
@@ -381,29 +393,40 @@ export function createNumbersCastleScene(engine, onExit) {
     }
 
     const face = BABYLON.MeshBuilder.CreateBox(`nFace_${index}`,
-      { width: 0.9, height: 0.9, depth: 0.05 }, scene);
+      { width: 1.1, height: 1.1, depth: 0.05 }, scene);
     face.material = numMat;
     face.parent   = root;
-    face.position.set(0, 0.15, 0);
+    face.position.set(0, 0.18, 0);
 
-    // Glow particle sphere underneath
+    // Glow ring around the tile
     const glowMat = new BABYLON.StandardMaterial(`nGlow_${index}`, scene);
-    glowMat.diffuseColor  = new BABYLON.Color3(0.3, 0.6, 1.0);
+    glowMat.diffuseColor  = new BABYLON.Color3(0.3 + hueShift * 0.4, 0.6, 1.0 - hueShift * 0.3);
     glowMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.6);
-    const glow = BABYLON.MeshBuilder.CreateSphere(`nGlowM_${index}`,
-      { diameter: 0.4, segments: 6 }, scene);
+    glowMat.alpha = 0.6;
+    const glow = BABYLON.MeshBuilder.CreateTorus(`nGlowM_${index}`,
+      { diameter: 1.8, thickness: 0.12, tessellation: 16 }, scene);
     glow.material = glowMat;
     glow.parent   = root;
-    glow.position.set(0, -0.25, 0);
+    glow.position.set(0, -0.10, 0);
+
+    // Small point light for each tile
+    const tileLight = new BABYLON.PointLight(`nTileLight_${index}`,
+      new BABYLON.Vector3(x, 2.2, z), scene);
+    tileLight.diffuse   = new BABYLON.Color3(tileR, tileG, 1.0);
+    tileLight.intensity = 0.8;
+    tileLight.range     = 5;
 
     const tileObj = {
       root, num, index, collected: false,
       _t: Math.random() * Math.PI * 2,
+      _light: tileLight,
       update() {
         if (this.collected) return;
-        this._t += 0.025;
-        this.root.position.y = 1.5 + Math.sin(this._t) * 0.22;
-        this.root.rotation.y += 0.022;
+        this._t += 0.028;
+        this.root.position.y = 1.5 + Math.sin(this._t) * 0.28;
+        this.root.rotation.y += 0.025;
+        // Pulse the glow ring
+        if (glow) glow.scaling.setAll(1.0 + Math.sin(this._t * 1.5) * 0.08);
       }
     };
     numberTiles.push(tileObj);
@@ -504,7 +527,9 @@ export function createNumbersCastleScene(engine, onExit) {
 
   player.camera.radius           = DESIRED_RADIUS;
   player.camera.lowerRadiusLimit = 3;
-  player.camera.upperRadiusLimit = 22;
+  player.camera.upperRadiusLimit = 26;
+  player.camera.lowerBetaLimit   = 0.3;
+  player.camera.upperBetaLimit   = Math.PI / 2.15;
 
   // ── Order hint ───────────────────────────────────────────────────────────────
   function _showOrderHint() {
@@ -702,6 +727,7 @@ export function createNumbersCastleScene(engine, onExit) {
               tile.collected = true;
               collectedNumbers.push(tile.num);
               tile.root.setEnabled(false);
+              if (tile._light) tile._light.setEnabled(false);
               _showCollectBanner(tile.num);
               SoundManager.playCollect();
               _updateHUD();
@@ -732,7 +758,7 @@ export function createNumbersCastleScene(engine, onExit) {
       const dRight    = Math.max(0.5, hw - px);
       const safe = Math.min(DESIRED_RADIUS, dBack * 0.85, dFront * 0.85, dLeft * 0.85, dRight * 0.85);
       player.camera.radius = BABYLON.Scalar.Lerp(player.camera.radius, Math.max(3.5, safe), 0.15);
-      player.camera.upperRadiusLimit = Math.max(3.5, safe) + 0.5;
+      player.camera.upperRadiusLimit = Math.max(Math.max(3.5, safe) + 2, 8);
 
       // Exit
       if (pz < -1.5 && typeof onExit === "function") onExit();

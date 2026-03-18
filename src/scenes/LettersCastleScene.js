@@ -727,7 +727,9 @@ export function createLettersCastleScene(engine, onExit) {
   player.mesh.position.set(0, 0.5, 2);
   player.camera.radius           = DESIRED_RADIUS;
   player.camera.lowerRadiusLimit = 3;
-  player.camera.upperRadiusLimit = 22;
+  player.camera.upperRadiusLimit = 26;
+  player.camera.lowerBetaLimit   = 0.3;
+  player.camera.upperBetaLimit   = Math.PI / 2.15;
 
   // ── HUD ──────────────────────────────────────────────────────────────────────
   const hudLocation = document.getElementById("hud-location");
@@ -980,7 +982,7 @@ export function createLettersCastleScene(engine, onExit) {
       const safe = Math.min(DESIRED_RADIUS, dBack * 0.85, dFront * 0.85, dLeft * 0.85, dRight * 0.85);
       const clampedR  = Math.max(3.5, safe);
       player.camera.radius = BABYLON.Scalar.Lerp(player.camera.radius, clampedR, 0.15);
-      player.camera.upperRadiusLimit = clampedR + 0.5;
+      player.camera.upperRadiusLimit = Math.max(clampedR + 2, 8);
 
       // Exit (walk back through entrance)
       if (pz < -1.5 && typeof onExit === "function") onExit();
