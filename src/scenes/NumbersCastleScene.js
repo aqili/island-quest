@@ -349,72 +349,92 @@ export function createNumbersCastleScene(engine, onExit) {
     const root = new BABYLON.TransformNode(`nTile_${index}`, scene);
     root.position = new BABYLON.Vector3(x, 1.5, z);
 
-    // Unique hue per tile for visual variety
-    const hueShift = (index / Math.max(1, TARGET_NUMS.length));
-    const tileR = 0.85 + hueShift * 0.1;
-    const tileG = 0.70 - hueShift * 0.3;
-    const tileB = 0.10 + hueShift * 0.6;
+    // Cycle through 6 distinct vibrant colors
+    const PALETTE = [
+      [0.20, 0.60, 1.00],  // blue
+      [0.95, 0.30, 0.25],  // red
+      [0.15, 0.80, 0.40],  // green
+      [0.90, 0.55, 0.10],  // orange
+      [0.70, 0.25, 0.90],  // purple
+      [0.95, 0.75, 0.05],  // gold
+    ];
+    const pal = PALETTE[index % PALETTE.length];
 
-    // Base disc — larger and more colorful
-    const discMat = new BABYLON.StandardMaterial(`nDisc_${index}`, scene);
-    discMat.diffuseColor  = new BABYLON.Color3(tileR, tileG, tileB);
-    discMat.emissiveColor = new BABYLON.Color3(tileR * 0.3, tileG * 0.25, tileB * 0.1);
-    const disc = BABYLON.MeshBuilder.CreateCylinder(`nDiscM_${index}`,
-      { diameter: 1.6, height: 0.22, tessellation: 16 }, scene);
-    disc.material = discMat;
-    disc.parent   = root;
-    disc.position.set(0, 0, 0);
+    // Hexagonal base pedestal
+    const baseMat = new BABYLON.StandardMaterial(`nBase_${index}`, scene);
+    baseMat.diffuseColor  = new BABYLON.Color3(pal[0] * 0.5, pal[1] * 0.5, pal[2] * 0.5);
+    baseMat.emissiveColor = new BABYLON.Color3(pal[0] * 0.15, pal[1] * 0.15, pal[2] * 0.15);
+    const base = BABYLON.MeshBuilder.CreateCylinder(`nBaseM_${index}`,
+      { diameter: 2.0, height: 0.14, tessellation: 6 }, scene);
+    base.material = baseMat;
+    base.parent   = root;
+    base.position.set(0, -0.22, 0);
 
-    // Number label using DynamicTexture
+    // Main sphere with number
+    const sphereMat = new BABYLON.StandardMaterial(`nSphere_${index}`, scene);
+    sphereMat.diffuseColor  = new BABYLON.Color3(pal[0], pal[1], pal[2]);
+    sphereMat.emissiveColor = new BABYLON.Color3(pal[0] * 0.35, pal[1] * 0.35, pal[2] * 0.35);
+    sphereMat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+    sphereMat.specularPower = 32;
+    const sphere = BABYLON.MeshBuilder.CreateSphere(`nSphereM_${index}`,
+      { diameter: 1.4, segments: 12 }, scene);
+    sphere.material = sphereMat;
+    sphere.parent   = root;
+    sphere.position.set(0, 0.15, 0);
+
+    // Number label using DynamicTexture on a billboard plane
     const numMat = new BABYLON.StandardMaterial(`nNumMat_${index}`, scene);
     try {
-      const dt = new BABYLON.DynamicTexture(`nNumTex_${index}`, { width: 128, height: 128 }, scene, false);
+      const sz = 128;
+      const dt = new BABYLON.DynamicTexture(`nNumTex_${index}`, { width: sz, height: sz }, scene, false);
       const ctx = dt.getContext();
-      // Gradient-like background
-      ctx.fillStyle = "#FFD700";
-      ctx.fillRect(0, 0, 128, 128);
-      // Border
-      ctx.strokeStyle = "#8B6914";
-      ctx.lineWidth = 6;
-      ctx.strokeRect(4, 4, 120, 120);
-      // Number text
-      ctx.fillStyle = "#1a1050";
-      ctx.font = "bold 78px Arial";
+      // Transparent background with just the number
+      ctx.clearRect(0, 0, sz, sz);
+      // White number with dark outline for contrast
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 88px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(String(num), 64, 68);
+      ctx.strokeStyle = "rgba(0,0,0,0.6)";
+      ctx.lineWidth = 5;
+      ctx.strokeText(String(num), sz / 2, sz / 2);
+      ctx.fillText(String(num), sz / 2, sz / 2);
       dt.update();
+      dt.hasAlpha = true;
       numMat.diffuseTexture  = dt;
       numMat.emissiveTexture = dt;
-      numMat.emissiveColor   = new BABYLON.Color3(0.9, 0.75, 0.0);
+      numMat.emissiveColor   = new BABYLON.Color3(1.0, 1.0, 1.0);
+      numMat.opacityTexture  = dt;
       numMat.backFaceCulling = false;
+      numMat.useAlphaFromDiffuseTexture = true;
     } catch(e) {
-      numMat.diffuseColor = new BABYLON.Color3(0.95, 0.75, 0.0);
+      numMat.diffuseColor = new BABYLON.Color3(1.0, 1.0, 1.0);
     }
 
-    const face = BABYLON.MeshBuilder.CreateBox(`nFace_${index}`,
-      { width: 1.1, height: 1.1, depth: 0.05 }, scene);
-    face.material = numMat;
-    face.parent   = root;
-    face.position.set(0, 0.18, 0);
+    const face = BABYLON.MeshBuilder.CreatePlane(`nFace_${index}`,
+      { width: 1.0, height: 1.0 }, scene);
+    face.material     = numMat;
+    face.parent       = root;
+    face.position.set(0, 0.15, 0.71);
+    face.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
 
     // Glow ring around the tile
     const glowMat = new BABYLON.StandardMaterial(`nGlow_${index}`, scene);
-    glowMat.diffuseColor  = new BABYLON.Color3(0.3 + hueShift * 0.4, 0.6, 1.0 - hueShift * 0.3);
-    glowMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.6);
-    glowMat.alpha = 0.6;
+    glowMat.diffuseColor  = new BABYLON.Color3(pal[0], pal[1], pal[2]);
+    glowMat.emissiveColor = new BABYLON.Color3(pal[0] * 0.5, pal[1] * 0.5, pal[2] * 0.5);
+    glowMat.alpha = 0.45;
     const glow = BABYLON.MeshBuilder.CreateTorus(`nGlowM_${index}`,
-      { diameter: 1.8, thickness: 0.12, tessellation: 16 }, scene);
+      { diameter: 2.2, thickness: 0.10, tessellation: 20 }, scene);
     glow.material = glowMat;
     glow.parent   = root;
-    glow.position.set(0, -0.10, 0);
+    glow.position.set(0, -0.15, 0);
 
-    // Small point light for each tile
+    // Point light for visibility
     const tileLight = new BABYLON.PointLight(`nTileLight_${index}`,
-      new BABYLON.Vector3(x, 2.2, z), scene);
-    tileLight.diffuse   = new BABYLON.Color3(tileR, tileG, 1.0);
-    tileLight.intensity = 0.8;
-    tileLight.range     = 5;
+      new BABYLON.Vector3(x, 2.5, z), scene);
+    tileLight.diffuse   = new BABYLON.Color3(pal[0], pal[1], pal[2]);
+    tileLight.intensity = 0.7;
+    tileLight.range     = 6;
 
     const tileObj = {
       root, num, index, collected: false,
@@ -423,10 +443,10 @@ export function createNumbersCastleScene(engine, onExit) {
       update() {
         if (this.collected) return;
         this._t += 0.028;
-        this.root.position.y = 1.5 + Math.sin(this._t) * 0.28;
-        this.root.rotation.y += 0.025;
+        this.root.position.y = 1.5 + Math.sin(this._t) * 0.30;
+        this.root.rotation.y += 0.018;
         // Pulse the glow ring
-        if (glow) glow.scaling.setAll(1.0 + Math.sin(this._t * 1.5) * 0.08);
+        if (glow) glow.scaling.setAll(1.0 + Math.sin(this._t * 1.8) * 0.10);
       }
     };
     numberTiles.push(tileObj);

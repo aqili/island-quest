@@ -939,58 +939,62 @@ function _buildNumbersIsland(scene) {
 }
 
 // ── Medieval island decoration (async / fire-and-forget) ────────────────────
-async function _decorateMedievalIsland(scene, cx, cz) {
-  // ── Wooden fence ring around island perimeter ─────────────────────────────
+// All models load in parallel for fast startup instead of sequential awaits.
+function _decorateMedievalIsland(scene, cx, cz) {
+  const jobs = [];
+
+  // Wooden fence ring around island perimeter
   const fenceAngles = [0, 45, 90, 135, 180, 225, 270, 315];
   for (const deg of fenceAngles) {
-    const a  = deg * Math.PI / 180;
-    const r  = 10.2;
-    await placeMedieval(scene, "Prop_WoodenFence_Single",
+    const a = deg * Math.PI / 180;
+    const r = 10.2;
+    jobs.push(placeMedieval(scene, "Prop_WoodenFence_Single",
       cx + Math.cos(a) * r, 0.05, cz + Math.sin(a) * r,
-      a + Math.PI / 2,  // face outward
-      0.85);
+      a + Math.PI / 2, 0.85));
   }
 
-  // ── Tower roofs (sit on top of existing procedural towers) ────────────────
-  // Tower positions relative to castle center: (±3.25, ±2.75)
+  // Tower roofs (sit on top of existing procedural towers)
   const towerOffsets = [[-3.25, -2.75], [3.25, -2.75], [-3.25, 2.75], [3.25, 2.75]];
   for (const [tx, tz] of towerOffsets) {
-    await placeMedieval(scene, "Roof_Tower_RoundTiles",
-      cx + tx, 6.55, cz + tz, 0, 1.05);
+    jobs.push(placeMedieval(scene, "Roof_Tower_RoundTiles",
+      cx + tx, 6.55, cz + tz, 0, 1.05));
   }
 
-  // ── Castle entrance door frame ─────────────────────────────────────────────
-  await placeMedieval(scene, "DoorFrame_Round_Brick",
-    cx, 0.05, cz + 2.95, 0, 0.95);
+  // Castle entrance door frame
+  jobs.push(placeMedieval(scene, "DoorFrame_Round_Brick",
+    cx, 0.05, cz + 2.95, 0, 0.95));
 
-  // ── Vines on castle walls ──────────────────────────────────────────────────
-  await placeMedieval(scene, "Prop_Vine1",
-    cx - 3.0, 0.05, cz + 2.9, Math.PI * 0.08, 1.1);
-  await placeMedieval(scene, "Prop_Vine2",
-    cx + 3.0, 0.05, cz + 2.9, -Math.PI * 0.08, 1.1);
-  await placeMedieval(scene, "Prop_Vine4",
-    cx - 3.3, 0.05, cz - 2.8, Math.PI, 1.0);
-  await placeMedieval(scene, "Prop_Vine5",
-    cx + 3.3, 0.05, cz - 2.8, Math.PI, 1.0);
+  // Vines on castle walls
+  jobs.push(placeMedieval(scene, "Prop_Vine1",
+    cx - 3.0, 0.05, cz + 2.9, Math.PI * 0.08, 1.1));
+  jobs.push(placeMedieval(scene, "Prop_Vine2",
+    cx + 3.0, 0.05, cz + 2.9, -Math.PI * 0.08, 1.1));
+  jobs.push(placeMedieval(scene, "Prop_Vine4",
+    cx - 3.3, 0.05, cz - 2.8, Math.PI, 1.0));
+  jobs.push(placeMedieval(scene, "Prop_Vine5",
+    cx + 3.3, 0.05, cz - 2.8, Math.PI, 1.0));
 
-  // ── Crates near castle entrance ────────────────────────────────────────────
-  await placeMedieval(scene, "Prop_Crate",
-    cx - 2.6, 0.05, cz + 5.0, 0.4, 0.70);
-  await placeMedieval(scene, "Prop_Crate",
-    cx + 2.6, 0.05, cz + 5.0, -0.5, 0.70);
-  // Stacked crate
-  await placeMedieval(scene, "Prop_Crate",
-    cx - 2.6, 0.52, cz + 4.8, 0.8, 0.55);
+  // Crates near castle entrance
+  jobs.push(placeMedieval(scene, "Prop_Crate",
+    cx - 2.6, 0.05, cz + 5.0, 0.4, 0.70));
+  jobs.push(placeMedieval(scene, "Prop_Crate",
+    cx + 2.6, 0.05, cz + 5.0, -0.5, 0.70));
 
-  // ── Wagon to the side of the castle ───────────────────────────────────────
-  await placeMedieval(scene, "Prop_Wagon",
-    cx - 6.2, 0.05, cz - 1.5, 0.6, 0.80);
+  // Wagon to the side of the castle
+  jobs.push(placeMedieval(scene, "Prop_Wagon",
+    cx - 6.2, 0.05, cz - 1.5, 0.6, 0.80));
 
-  // ── Brick path from castle door toward island edge ────────────────────────
+  // Brick path from castle door toward island edge
   for (let i = 0; i < 4; i++) {
-    await placeMedieval(scene, "Floor_Brick",
-      cx, 0.05, cz + 3.8 + i * 1.0, 0, 1.0);
+    jobs.push(placeMedieval(scene, "Floor_Brick",
+      cx, 0.05, cz + 3.8 + i * 1.0, 0, 1.0));
   }
+
+  // Launch all in parallel; stacked crate placed after its base lands
+  Promise.all(jobs).then(() => {
+    placeMedieval(scene, "Prop_Crate",
+      cx - 2.6, 0.52, cz + 4.8, 0.8, 0.55);
+  });
 }
 
 // ── Horse ──────────────────────────────────────────────────────────────────────

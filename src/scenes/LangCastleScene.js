@@ -445,14 +445,35 @@ function _buildPuzzleSign(scene, z, idx, accentColor) {
   const bh = 256;
   const dt = new BABYLON.DynamicTexture("lSignTex_" + idx,
     { width: boardSize, height: bh }, scene);
-  dt.drawText("ROOM " + (idx + 1),         null,  90, "bold 72px Arial", "#DDB8FF", "transparent", true, false);
-  dt.drawText("Language Challenge",        null, 162, "bold 44px Arial", "#9944CC", null,          true, false);
-  dt.drawText("Walk to the door to play!", null, 228, "34px Arial",      "#331144", null,          true, true);
-  dt.uScale = -1;
+  const ctx = dt.getContext();
+  // Dark purple background
+  ctx.fillStyle = "#1a0430";
+  ctx.fillRect(0, 0, boardSize, bh);
+  // Border
+  ctx.strokeStyle = "#9944CC";
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, boardSize - 6, bh - 6);
+  // Title
+  ctx.fillStyle = "#DDB8FF";
+  ctx.font = "bold 72px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("ROOM " + (idx + 1), boardSize / 2, 60);
+  // Subtitle
+  ctx.fillStyle = "#CC88FF";
+  ctx.font = "bold 44px Arial";
+  ctx.fillText("Language Challenge", boardSize / 2, 128);
+  // Bottom hint
+  ctx.fillStyle = "#AA88DD";
+  ctx.font = "34px Arial";
+  ctx.fillText("Walk to the door to play!", boardSize / 2, 200);
+  dt.update();
 
   const boardMat = new BABYLON.StandardMaterial("lSignBoard_" + idx, scene);
-  boardMat.diffuseColor   = new BABYLON.Color3(0.10, 0.02, 0.18);
-  boardMat.diffuseTexture = dt;
+  boardMat.diffuseColor   = new BABYLON.Color3(1.0, 1.0, 1.0);
+  boardMat.emissiveTexture = dt;
+  boardMat.emissiveColor  = new BABYLON.Color3(0.5, 0.4, 0.6);
+  boardMat.diffuseTexture  = dt;
 
   const board = BABYLON.MeshBuilder.CreateBox("lSignBoard_" + idx,
     { width: 4.6, height: 2.0, depth: 0.12 }, scene);
