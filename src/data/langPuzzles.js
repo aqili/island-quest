@@ -68,13 +68,13 @@ export const langPuzzles = {
     { words: ["runs", "fast", "the", "dog"],                    sentence: "the dog runs fast" },
     { words: ["is", "today", "sunny", "it"],                    sentence: "it is sunny today" },
     { words: ["cat", "on", "the", "sits", "mat", "the"],        sentence: "the cat sits on the mat" },
-    { words: ["birds", "the", "sing", "morning", "in"],          sentence: "the birds sing in morning" },
+    { words: ["birds", "the", "sing", "morning", "in", "the"],   sentence: "the birds sing in the morning" },
     { words: ["is", "my", "teacher", "kind", "very"],            sentence: "my teacher is very kind" },
     { words: ["we", "park", "the", "play", "in"],                sentence: "we play in the park" },
     { words: ["flowers", "the", "beautiful", "are"],             sentence: "the flowers are beautiful" },
     { words: ["likes", "he", "ice", "cream", "eating"],          sentence: "he likes eating ice cream" },
     { words: ["the", "blue", "sky", "is"],                       sentence: "the sky is blue" },
-    { words: ["a", "rabbit", "the", "hops", "in", "garden"],    sentence: "a rabbit hops in the garden" },
+    { words: ["a", "rabbit", "hops", "in", "the", "garden"],     sentence: "a rabbit hops in the garden" },
     { words: ["stars", "at", "the", "twinkle", "night"],         sentence: "the stars twinkle at night" }
   ]
 };
