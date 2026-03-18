@@ -231,7 +231,7 @@ export function createPlayer(scene) {
     _joyMove(t.clientX, t.clientY);
   }, { passive: false });
 
-  window.addEventListener("touchmove", e => {
+  const _touchMoveHandler = e => {
     if (activeTouchId === null) return;
     for (const t of e.changedTouches) {
       if (t.identifier === activeTouchId) {
@@ -240,21 +240,23 @@ export function createPlayer(scene) {
         break;
       }
     }
-  }, { passive: false });
+  };
+  window.addEventListener("touchmove", _touchMoveHandler, { passive: false });
 
-  window.addEventListener("touchend", e => {
+  const _touchEndHandler = e => {
     for (const t of e.changedTouches) {
       if (t.identifier === activeTouchId) { _joyReset(); break; }
     }
-  });
+  };
+  window.addEventListener("touchend", _touchEndHandler);
   window.addEventListener("touchcancel", _joyReset);
 
   // Clean up on scene dispose
   scene.onDisposeObservable.addOnce(() => {
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup",   onKeyUp);
-    window.removeEventListener("touchmove", _joyMove);
-    window.removeEventListener("touchend",  _joyReset);
+    window.removeEventListener("touchmove",   _touchMoveHandler);
+    window.removeEventListener("touchend",    _touchEndHandler);
     window.removeEventListener("touchcancel", _joyReset);
     if (joyWrap.parentNode) joyWrap.parentNode.removeChild(joyWrap);
     if (jumpBtn.parentNode) jumpBtn.parentNode.removeChild(jumpBtn);
