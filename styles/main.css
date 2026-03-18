@@ -420,8 +420,36 @@ body {
   -webkit-user-select: none;
 }
 
+/* Mobile run button — positioned above the jump button */
+#btn-run-mobile {
+  display: none;
+  position: fixed;
+  bottom: 118px;
+  right: 34px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(60, 120, 220, 0.70);
+  border: 3px solid rgba(255,255,255,0.50);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 200;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.15s;
+}
+
+#btn-run-mobile.active {
+  background: rgba(255, 160, 40, 0.80);
+  border-color: rgba(255, 230, 100, 0.70);
+}
+
 @media (hover: none) and (pointer: coarse) {
   #btn-jump { display: flex; align-items: center; justify-content: center; }
+  #btn-run-mobile { display: flex; align-items: center; justify-content: center; }
 }
 
 @keyframes bannerFade {
@@ -477,22 +505,6 @@ body {
 }
 #btn-restart:active, #btn-change-char:active {
   transform: translateY(1px);
-}
-
-/* ===== World loading overlay ===== */
-#world-loading {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #0b2545, #13547a, #1a6fa8);
-  transition: opacity 0.5s ease;
-}
-#world-loading.hidden {
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* ===== Speed toggle button ===== */
@@ -655,36 +667,37 @@ body {
 
 /* ===== Mobile enhancements (max-width: 640px) ===== */
 @media (max-width: 640px) {
-  /* HUD — hide island name & stars, keep only crown + buttons */
+  /* HUD — compact top bar with essential buttons */
   #hud {
     padding: 6px 10px;
-    gap: 8px;
+    gap: 6px;
     background: rgba(0,0,0,0.55);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     border-bottom: 1px solid rgba(255,255,255,0.10);
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
   #hud-location { display: none; }
   #hud-stars    { display: none; }
-  #hud-crowns   { font-size: 1.3rem; }
+  #hud-crowns   { font-size: 1.3rem; margin-right: auto; }
   #btn-respawn  {
-    font-size: 0.95rem;
-    padding: 5px 12px;
+    font-size: 0.85rem;
+    padding: 4px 10px;
     background: rgba(255,255,255,0.15);
     border-radius: 10px;
   }
   #btn-lang {
-    font-size: 0.95rem;
-    padding: 4px 10px;
+    font-size: 0.85rem;
+    padding: 3px 8px;
   }
   #btn-restart, #btn-change-char {
-    font-size: 0.85rem;
-    padding: 4px 10px;
+    font-size: 0.78rem;
+    padding: 3px 8px;
   }
+  /* Hide HUD speed button on mobile — use the floating run button instead */
   #btn-speed {
-    font-size: 0.85rem;
-    padding: 4px 10px;
+    display: none;
   }
 
   /* Puzzle panel */
@@ -748,6 +761,11 @@ html[dir="rtl"] #joy-wrap {
 
 html[dir="rtl"] #btn-jump {
   right: 30px;
+  left: auto;
+}
+
+html[dir="rtl"] #btn-run-mobile {
+  right: 34px;
   left: auto;
 }
 

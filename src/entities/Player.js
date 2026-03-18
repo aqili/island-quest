@@ -197,6 +197,23 @@ export function createPlayer(scene) {
     if (!isJumping) { isJumping = true; jumpVelocity = JUMP_FORCE; }
   }, { passive: false });
 
+  // ── Mobile run button (next to jump) ────────────────────────────────────
+  const runBtn = document.createElement("button");
+  runBtn.id = "btn-run-mobile";
+  runBtn.textContent = "🏃";
+  document.body.appendChild(runBtn);
+  runBtn.addEventListener("touchstart", e => {
+    e.preventDefault();
+    window.iq_runMode = !window.iq_runMode;
+    runBtn.classList.toggle("active", window.iq_runMode);
+    // Keep the HUD button in sync
+    const hudSpeed = document.getElementById("btn-speed");
+    if (hudSpeed) {
+      hudSpeed.classList.toggle("active", window.iq_runMode);
+      hudSpeed.textContent = window.iq_runMode ? "🏃 Running" : "🏃 Run";
+    }
+  }, { passive: false });
+
   let activeTouchId = null;
   let baseX = 0, baseY = 0;
 
@@ -260,6 +277,7 @@ export function createPlayer(scene) {
     window.removeEventListener("touchcancel", _joyReset);
     if (joyWrap.parentNode) joyWrap.parentNode.removeChild(joyWrap);
     if (jumpBtn.parentNode) jumpBtn.parentNode.removeChild(jumpBtn);
+    if (runBtn.parentNode)  runBtn.parentNode.removeChild(runBtn);
   });
 
   const SPEED = 0.15;

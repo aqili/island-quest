@@ -55,13 +55,6 @@ function switchScene(newScene) {
 function goToWorld() {
   SoundManager.startAmbient();
 
-  // Show a lightweight loading overlay while the world scene compiles shaders
-  // and loads textures so the player sees castles immediately when it appears.
-  const worldLoading = document.createElement("div");
-  worldLoading.id = "world-loading";
-  worldLoading.innerHTML = `<p style="font-family:'Fredoka One',cursive;font-size:1.6rem;color:#ffe066;text-shadow:0 2px 8px rgba(0,0,0,0.5);">Loading world…</p>`;
-  document.body.appendChild(worldLoading);
-
   const worldScene = createWorldScene(
     engine,
     () => goToMathCastle(),      // onEnterMath
@@ -70,18 +63,9 @@ function goToWorld() {
     () => goToNumbersCastle()    // onEnterNumbers
   );
 
-  // Wait for all textures / shaders to be ready before revealing the scene
-  worldScene.whenReadyAsync().then(() => {
-    switchScene(worldScene);
-    worldLoading.classList.add("hidden");
-    setTimeout(() => { if (worldLoading.parentNode) worldLoading.remove(); }, 600);
-  }).catch((err) => {
-    console.warn("[WorldScene] whenReadyAsync failed, showing scene anyway:", err);
-    // Fallback: show scene anyway after timeout
-    switchScene(worldScene);
-    worldLoading.classList.add("hidden");
-    setTimeout(() => { if (worldLoading.parentNode) worldLoading.remove(); }, 600);
-  });
+  // Switch immediately so the player can walk while props / textures finish
+  // loading in the background. No blocking overlay needed.
+  switchScene(worldScene);
 }
 
 function goToMathCastle() {
