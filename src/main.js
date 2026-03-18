@@ -75,7 +75,8 @@ function goToWorld() {
     switchScene(worldScene);
     worldLoading.classList.add("hidden");
     setTimeout(() => { if (worldLoading.parentNode) worldLoading.remove(); }, 600);
-  }).catch(() => {
+  }).catch((err) => {
+    console.warn("[WorldScene] whenReadyAsync failed, showing scene anyway:", err);
     // Fallback: show scene anyway after timeout
     switchScene(worldScene);
     worldLoading.classList.add("hidden");

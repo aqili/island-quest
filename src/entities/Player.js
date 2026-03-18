@@ -266,6 +266,11 @@ export function createPlayer(scene) {
   const RUN_SPEED = 0.30;
   let walkTime = 0;
 
+  /** True when the player should be running (Shift held or Run button active). */
+  function _isRunning() {
+    return !!(keys["ShiftLeft"] || keys["ShiftRight"] || window.iq_runMode);
+  }
+
   const CAM_ROT = 0.035;   // radians per frame for arrow-key camera rotation
 
   // ── Update ───────────────────────────────────────────────────────────────
@@ -318,7 +323,7 @@ export function createPlayer(scene) {
       const worldDz = dx * Math.sin(camYaw) + dz * Math.cos(camYaw);
 
       // Use run speed when shift is held or run mode is active
-      const spd = (keys["ShiftLeft"] || keys["ShiftRight"] || window.iq_runMode) ? RUN_SPEED : SPEED;
+      const spd = _isRunning() ? RUN_SPEED : SPEED;
       root.position.x += worldDx * spd;
       root.position.z += worldDz * spd;
 
@@ -328,15 +333,14 @@ export function createPlayer(scene) {
 
       // ── GLB: play walk/run animation ───────────────────────────────────
       if (_usingGLB) {
-        const isRun = keys["ShiftLeft"] || keys["ShiftRight"] || window.iq_runMode;
-        _switchGLBAnim(isJumping ? "jump" : (isRun ? "run" : "walk"));
+        _switchGLBAnim(isJumping ? "jump" : (_isRunning() ? "run" : "walk"));
       } else {
         // Procedural walk cycle (skip if mid-air)
         if (!isJumping) {
-          const isRun = keys["ShiftLeft"] || keys["ShiftRight"] || window.iq_runMode;
-          walkTime += isRun ? 0.28 : 0.18;
-          const swing  = Math.sin(walkTime) * (isRun ? 0.75 : 0.55);
-          const legBob = Math.abs(Math.sin(walkTime)) * (isRun ? 0.06 : 0.04);
+          const runMode = _isRunning();
+          walkTime += runMode ? 0.28 : 0.18;
+          const swing  = Math.sin(walkTime) * (runMode ? 0.75 : 0.55);
+          const legBob = Math.abs(Math.sin(walkTime)) * (runMode ? 0.06 : 0.04);
 
           lArmPivot.rotation.x =  swing;
           rArmPivot.rotation.x = -swing;
@@ -474,7 +478,7 @@ export function createPlayer(scene) {
     update,
     camera,
     /** Toggle or set run mode. */
-    setRunning(v) { window.iq_runMode = v; },
+    setRunning(v) { window.iq_runMode = !!v; },
     isRunning()   { return window.iq_runMode; }
   };
 }
