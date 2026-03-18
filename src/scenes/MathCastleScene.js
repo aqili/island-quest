@@ -180,11 +180,11 @@ export function createMathCastleScene(engine, onExit) {
             ? door.dz - 2.8
             : door.dz + 2.8;
 
-          SoundManager.playWrong && SoundManager.playWrong();
+          SoundManager.playWrong();
           _triggerPuzzle(door.idx, scene, () => {
             SaveManager.markRoomComplete("mathIsland", door.idx);
             _setDoorSolved(door);
-            SoundManager.playCorrect && SoundManager.playCorrect();
+            SoundManager.playCorrect();
             puzzleActive = false;
             _updateHUD(hudLocation, hudStars, currentRoom);
             if (door.idx === 3) {

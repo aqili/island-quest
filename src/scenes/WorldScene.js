@@ -128,6 +128,7 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   // ── HUD ───────────────────────────────────────────────────────────────────
   const hudLocation = document.getElementById("hud-location");
   const hudCrowns   = document.getElementById("hud-crowns");
+  let _lastCrownsText = "";
 
   function updateHUD() {
     const save = SaveManager.load();
@@ -137,7 +138,10 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       (save.lettersIsland  && save.lettersIsland.crownEarned)  ? "👑🔡" : "",
       (save.numbersIsland  && save.numbersIsland.crownEarned)  ? "👑🔟" : ""
     ].filter(Boolean).join("  ");
-    hudCrowns.textContent = crowns;
+    if (crowns !== _lastCrownsText) {
+      _lastCrownsText = crowns;
+      hudCrowns.textContent = crowns;
+    }
   }
   updateHUD();
 
@@ -146,11 +150,6 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   let cloudT = 0;
 
   // ── Proximity / triggers ──────────────────────────────────────────────────
-  // Trigger on island CENTER so any approach direction works (radius 10 = inside grass)
-  const mathCenter    = new BABYLON.Vector3(-30, 0,  0);
-  const langCenter    = new BABYLON.Vector3( 30, 0,  0);
-  const lettersCenter = new BABYLON.Vector3(  0, 0, -55);
-  const numbersCenter = new BABYLON.Vector3(  0, 0,  55);
 
   scene.registerBeforeRender(() => {
     try {
@@ -163,17 +162,18 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       });
 
       // Update animals (isolated so errors never block door triggers)
-      animals.forEach(a => { try { a.update(); } catch(e) {} });
+      animals.forEach(a => { try { a.update(); } catch(e) { console.warn("Animal update error:", e); } });
 
       // Animate seagulls
-      seagulls.forEach(s => { try { s.update(); } catch(e) {} });
+      seagulls.forEach(s => { try { s.update(); } catch(e) { console.warn("Seagull update error:", e); } });
 
       const px = player.mesh.position;
 
-      const distMath    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-30, px.y,   0));
-      const distLang    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3( 30, px.y,   0));
-      const distLetters = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(  0, px.y, -55));
-      const distNums    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(  0, px.y,  55));
+      // Use 2D horizontal distance (no per-frame Vector3 allocations)
+      const distMath    = Math.sqrt((px.x + 30) * (px.x + 30) + px.z * px.z);
+      const distLang    = Math.sqrt((px.x - 30) * (px.x - 30) + px.z * px.z);
+      const distLetters = Math.sqrt(px.x * px.x + (px.z + 55) * (px.z + 55));
+      const distNums    = Math.sqrt(px.x * px.x + (px.z - 55) * (px.z - 55));
 
       if (distMath < 15) {
         if (lastNearIsland !== "math")    { lastNearIsland = "math";    hudLocation.textContent = "🔢 Math Island"; }
@@ -187,23 +187,13 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
         if (lastNearIsland !== null) { lastNearIsland = null; hudLocation.textContent = "🌊 Open Ocean"; }
       }
 
-      // 2D horizontal distance only (ignore y) so slope/height never blocks entry
-      const pdx2 = px.x - mathCenter.x,    pdz2 = px.z - mathCenter.z;
-      const ldx2 = px.x - langCenter.x,    ldz2 = px.z - langCenter.z;
-      const letdx = px.x - lettersCenter.x, letdz = px.z - lettersCenter.z;
-      const numdx = px.x - numbersCenter.x,  numdz = px.z - numbersCenter.z;
-      const distM2 = Math.sqrt(pdx2*pdx2 + pdz2*pdz2);
-      const distL2 = Math.sqrt(ldx2*ldx2 + ldz2*ldz2);
-      const distLet = Math.sqrt(letdx*letdx + letdz*letdz);
-      const distNum = Math.sqrt(numdx*numdx + numdz*numdz);
-
-      if (!switching && distM2 < 10) {
+      if (!switching && distMath < 10) {
         switching = true; setTimeout(() => onEnterMath(), 0);
-      } else if (!switching && distL2 < 10) {
+      } else if (!switching && distLang < 10) {
         switching = true; setTimeout(() => onEnterLang(), 0);
-      } else if (!switching && onEnterLetters && distLet < 10) {
+      } else if (!switching && onEnterLetters && distLetters < 10) {
         switching = true; setTimeout(() => onEnterLetters(), 0);
-      } else if (!switching && onEnterNumbers && distNum < 10) {
+      } else if (!switching && onEnterNumbers && distNums < 10) {
         switching = true; setTimeout(() => onEnterNumbers(), 0);
       }
 

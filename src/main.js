@@ -154,8 +154,14 @@ function _buildLoadingScreen() {
   const div = document.createElement("div");
   div.id = "loading-screen";
   div.innerHTML = `
-    <p class="logo">🏝️ Island Quest</p>
-    <p class="subtitle">Loading your adventure… please wait!</p>
+    <div class="loading-content">
+      <div class="loading-icon">🏝️</div>
+      <p class="logo">Island Quest</p>
+      <p class="subtitle">Loading your adventure…</p>
+      <div class="loading-bar-track">
+        <div class="loading-bar-fill"></div>
+      </div>
+    </div>
   `;
   return div;
 }
