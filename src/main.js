@@ -138,15 +138,60 @@ try {
 const loadingScreen = _buildLoadingScreen();
 document.body.appendChild(loadingScreen);
 
-setTimeout(() => {
+// Wait for the Babylon engine to finish compiling shaders / loading textures
+// before showing the avatar selector, so the game feels instant once you press Play.
+function _showAvatarSelector() {
   loadingScreen.classList.add("hidden");
   setTimeout(() => {
     loadingScreen.remove();
-    // Show avatar selector — resolves when player clicks Play
     const avatarUI = _buildAvatarSelector();
     document.body.appendChild(avatarUI);
   }, 700);
-}, 1800);
+}
+
+// Wait for engine readiness, then show avatar selector
+if (engine.isReady && engine.isReady()) {
+  _showAvatarSelector();
+} else {
+  // Fallback: poll until ready (max 4s)
+  let _readyChecks = 0;
+  const _readyTimer = setInterval(() => {
+    _readyChecks++;
+    if ((engine.isReady && engine.isReady()) || _readyChecks > 40) {
+      clearInterval(_readyTimer);
+      _showAvatarSelector();
+    }
+  }, 100);
+}
+
+// ── Restart & Change Character ────────────────────────────────────────────────
+function _showAvatarAndRestart() {
+  // Stop current scene
+  engine.stopRenderLoop();
+  if (activeScene) { activeScene.dispose(); activeScene = null; }
+  // Clear any open puzzle overlay
+  const overlay = document.getElementById("ui-overlay");
+  if (overlay) { overlay.innerHTML = ""; overlay.classList.remove("active"); }
+  // Show avatar selector
+  const avatarUI = _buildAvatarSelector();
+  document.body.appendChild(avatarUI);
+}
+
+const btnRestart = document.getElementById("btn-restart");
+if (btnRestart) {
+  btnRestart.addEventListener("click", () => {
+    // Clear save data for a fresh start
+    SaveManager.reset();
+    _showAvatarAndRestart();
+  });
+}
+
+const btnChangeChar = document.getElementById("btn-change-char");
+if (btnChangeChar) {
+  btnChangeChar.addEventListener("click", () => {
+    _showAvatarAndRestart();
+  });
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

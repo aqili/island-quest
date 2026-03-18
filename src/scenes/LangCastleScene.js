@@ -23,7 +23,7 @@ const ROOMS = [
 const ROOM_LENGTH    = 40;
 const ROOM_WIDTH     = 80;
 const ROOM_HEIGHT    = 7.0;
-const DESIRED_RADIUS = 12;
+const DESIRED_RADIUS = 16;
 
 export function createLangCastleScene(engine, onExit) {
   const scene = new BABYLON.Scene(engine);
@@ -45,10 +45,10 @@ export function createLangCastleScene(engine, onExit) {
   player.mesh.position = new BABYLON.Vector3(0, 0.5, 10);
 
   player.camera.radius           = DESIRED_RADIUS;
-  player.camera.lowerRadiusLimit  = 3;
-  player.camera.upperRadiusLimit  = 30;
-  player.camera.lowerBetaLimit    = 0.3;
-  player.camera.upperBetaLimit    = Math.PI / 2.15;
+  player.camera.lowerRadiusLimit  = 2;
+  player.camera.upperRadiusLimit  = 35;
+  player.camera.lowerBetaLimit    = 0.2;
+  player.camera.upperBetaLimit    = Math.PI / 2.05;
 
   const hudLocation = document.getElementById("hud-location");
   const hudStars    = document.getElementById("hud-stars");
@@ -89,7 +89,7 @@ export function createLangCastleScene(engine, onExit) {
     );
     const clampedR = Math.max(3.0, safeRadius);
     player.camera.radius = BABYLON.Scalar.Lerp(player.camera.radius, clampedR, 0.18);
-    player.camera.upperRadiusLimit = Math.max(clampedR + 2, 8);
+    player.camera.upperRadiusLimit = Math.max(clampedR + 4, 12);
 
     const roomIdx = Math.max(0, Math.min(3, Math.floor(pz / ROOM_LENGTH)));
     if (roomIdx !== currentRoom) {

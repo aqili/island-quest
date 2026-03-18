@@ -71,5 +71,14 @@ export const SaveManager = {
     if (roomIndex === 0) return true;
     const data = this.load();
     return data[island].roomsCompleted[roomIndex - 1] === true;
+  },
+
+  /** Clear all progress and reset to defaults. */
+  reset() {
+    try {
+      localStorage.removeItem(SAVE_KEY);
+    } catch (e) {
+      console.warn("SaveManager: could not reset localStorage", e);
+    }
   }
 };

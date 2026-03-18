@@ -20,7 +20,7 @@ export function createLettersCastleScene(engine, onExit) {
   const ROOM_LENGTH  = 30;
   const ROOM_HEIGHT  = 7.0;
   const NUM_ROOMS    = 4;    // 0 = entry/assembly, 1–3 = letter rooms
-  const DESIRED_RADIUS = 12;
+  const DESIRED_RADIUS = 16;
 
   // ── Pick a random word ──────────────────────────────────────────────────────
   const puzzleData     = LETTER_WORDS[Math.floor(Math.random() * LETTER_WORDS.length)];
@@ -726,10 +726,10 @@ export function createLettersCastleScene(engine, onExit) {
   const player = createPlayer(scene);
   player.mesh.position.set(0, 0.5, 2);
   player.camera.radius           = DESIRED_RADIUS;
-  player.camera.lowerRadiusLimit = 3;
-  player.camera.upperRadiusLimit = 26;
-  player.camera.lowerBetaLimit   = 0.3;
-  player.camera.upperBetaLimit   = Math.PI / 2.15;
+  player.camera.lowerRadiusLimit = 2;
+  player.camera.upperRadiusLimit = 35;
+  player.camera.lowerBetaLimit   = 0.2;
+  player.camera.upperBetaLimit   = Math.PI / 2.05;
 
   // ── HUD ──────────────────────────────────────────────────────────────────────
   const hudLocation = document.getElementById("hud-location");
@@ -982,7 +982,7 @@ export function createLettersCastleScene(engine, onExit) {
       const safe = Math.min(DESIRED_RADIUS, dBack * 0.85, dFront * 0.85, dLeft * 0.85, dRight * 0.85);
       const clampedR  = Math.max(3.5, safe);
       player.camera.radius = BABYLON.Scalar.Lerp(player.camera.radius, clampedR, 0.15);
-      player.camera.upperRadiusLimit = Math.max(clampedR + 2, 8);
+      player.camera.upperRadiusLimit = Math.max(clampedR + 4, 12);
 
       // Exit (walk back through entrance)
       if (pz < -1.5 && typeof onExit === "function") onExit();

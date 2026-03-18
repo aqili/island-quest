@@ -22,7 +22,7 @@ export function createNumbersCastleScene(engine, onExit) {
   const ROOM_LENGTH   = 30;
   const ROOM_HEIGHT   = 7.0;
   const NUM_ROOMS     = 4;
-  const DESIRED_RADIUS = 12;
+  const DESIRED_RADIUS = 16;
 
   // ── Pick a random puzzle ────────────────────────────────────────────────────
   const puzzleData   = NUMBER_PUZZLES[Math.floor(Math.random() * NUMBER_PUZZLES.length)];
@@ -344,7 +344,7 @@ export function createNumbersCastleScene(engine, onExit) {
     roomLight.range     = 18;
   }
 
-  // ── Number tile ─────────────────────────────────────────────────────────────
+  // ── Number tile (rectangular card style) ────────────────────────────────────
   function _buildNumberTile(index, num, x, z) {
     const root = new BABYLON.TransformNode(`nTile_${index}`, scene);
     root.position = new BABYLON.Vector3(x, 1.5, z);
@@ -360,74 +360,71 @@ export function createNumbersCastleScene(engine, onExit) {
     ];
     const pal = PALETTE[index % PALETTE.length];
 
-    // Hexagonal base pedestal
-    const baseMat = new BABYLON.StandardMaterial(`nBase_${index}`, scene);
-    baseMat.diffuseColor  = new BABYLON.Color3(pal[0] * 0.5, pal[1] * 0.5, pal[2] * 0.5);
-    baseMat.emissiveColor = new BABYLON.Color3(pal[0] * 0.15, pal[1] * 0.15, pal[2] * 0.15);
-    const base = BABYLON.MeshBuilder.CreateCylinder(`nBaseM_${index}`,
-      { diameter: 2.0, height: 0.14, tessellation: 6 }, scene);
-    base.material = baseMat;
-    base.parent   = root;
-    base.position.set(0, -0.22, 0);
+    // Rectangular card body
+    const cardMat = new BABYLON.StandardMaterial(`nCard_${index}`, scene);
+    cardMat.diffuseColor  = new BABYLON.Color3(pal[0], pal[1], pal[2]);
+    cardMat.emissiveColor = new BABYLON.Color3(pal[0] * 0.3, pal[1] * 0.3, pal[2] * 0.3);
+    cardMat.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+    cardMat.specularPower = 24;
+    const card = BABYLON.MeshBuilder.CreateBox(`nCardM_${index}`,
+      { width: 1.6, height: 2.0, depth: 0.25 }, scene);
+    card.material = cardMat;
+    card.parent   = root;
+    card.position.set(0, 0, 0);
 
-    // Main sphere with number
-    const sphereMat = new BABYLON.StandardMaterial(`nSphere_${index}`, scene);
-    sphereMat.diffuseColor  = new BABYLON.Color3(pal[0], pal[1], pal[2]);
-    sphereMat.emissiveColor = new BABYLON.Color3(pal[0] * 0.35, pal[1] * 0.35, pal[2] * 0.35);
-    sphereMat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
-    sphereMat.specularPower = 32;
-    const sphere = BABYLON.MeshBuilder.CreateSphere(`nSphereM_${index}`,
-      { diameter: 1.4, segments: 12 }, scene);
-    sphere.material = sphereMat;
-    sphere.parent   = root;
-    sphere.position.set(0, 0.15, 0);
-
-    // Number label using DynamicTexture on a billboard plane
-    const numMat = new BABYLON.StandardMaterial(`nNumMat_${index}`, scene);
+    // Number face — DynamicTexture painted on front
+    const faceMat = new BABYLON.StandardMaterial(`nFaceMat_${index}`, scene);
     try {
-      const sz = 128;
+      const sz = 256;
       const dt = new BABYLON.DynamicTexture(`nNumTex_${index}`, { width: sz, height: sz }, scene, false);
       const ctx = dt.getContext();
-      // Transparent background with just the number
-      ctx.clearRect(0, 0, sz, sz);
-      // White number with dark outline for contrast
+      // Card-like background
+      const r255 = Math.round(pal[0] * 255);
+      const g255 = Math.round(pal[1] * 255);
+      const b255 = Math.round(pal[2] * 255);
+      ctx.fillStyle = `rgb(${Math.floor(r255*0.15)},${Math.floor(g255*0.15)},${Math.floor(b255*0.15)})`;
+      ctx.fillRect(0, 0, sz, sz);
+      // Rounded border in tile color
+      ctx.strokeStyle = `rgb(${r255},${g255},${b255})`;
+      ctx.lineWidth = 10;
+      ctx.strokeRect(10, 10, sz - 20, sz - 20);
+      // Large number
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 88px Arial";
+      ctx.font = "bold 150px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.strokeStyle = "rgba(0,0,0,0.6)";
-      ctx.lineWidth = 5;
-      ctx.strokeText(String(num), sz / 2, sz / 2);
       ctx.fillText(String(num), sz / 2, sz / 2);
       dt.update();
-      dt.hasAlpha = true;
-      numMat.diffuseTexture  = dt;
-      numMat.emissiveTexture = dt;
-      numMat.emissiveColor   = new BABYLON.Color3(1.0, 1.0, 1.0);
-      numMat.opacityTexture  = dt;
-      numMat.backFaceCulling = false;
-      numMat.useAlphaFromDiffuseTexture = true;
+      faceMat.diffuseTexture  = dt;
+      faceMat.emissiveTexture = dt;
+      faceMat.emissiveColor   = new BABYLON.Color3(0.6, 0.6, 0.6);
+      faceMat.backFaceCulling = false;
     } catch(e) {
-      numMat.diffuseColor = new BABYLON.Color3(1.0, 1.0, 1.0);
+      faceMat.diffuseColor = new BABYLON.Color3(1.0, 1.0, 1.0);
     }
 
     const face = BABYLON.MeshBuilder.CreatePlane(`nFace_${index}`,
-      { width: 1.0, height: 1.0 }, scene);
-    face.material     = numMat;
-    face.parent       = root;
-    face.position.set(0, 0.15, 0.71);
-    face.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+      { width: 1.4, height: 1.8 }, scene);
+    face.material = faceMat;
+    face.parent   = root;
+    face.position.set(0, 0, 0.13);
 
-    // Glow ring around the tile
+    // Back face (same number visible from behind)
+    const backFace = face.clone(`nFaceBack_${index}`);
+    backFace.parent = root;
+    backFace.position.set(0, 0, -0.13);
+    backFace.rotation.y = Math.PI;
+
+    // Glow outline around the rectangular card
     const glowMat = new BABYLON.StandardMaterial(`nGlow_${index}`, scene);
     glowMat.diffuseColor  = new BABYLON.Color3(pal[0], pal[1], pal[2]);
     glowMat.emissiveColor = new BABYLON.Color3(pal[0] * 0.5, pal[1] * 0.5, pal[2] * 0.5);
-    glowMat.alpha = 0.45;
-    const glow = BABYLON.MeshBuilder.CreateTorus(`nGlowM_${index}`,
-      { diameter: 2.2, thickness: 0.10, tessellation: 20 }, scene);
-    glow.material = glowMat;
-    glow.parent   = root;
-    glow.position.set(0, -0.15, 0);
+    glowMat.alpha = 0.4;
+    const glowFrame = BABYLON.MeshBuilder.CreateBox(`nGlowF_${index}`,
+      { width: 1.9, height: 2.3, depth: 0.08 }, scene);
+    glowFrame.material = glowMat;
+    glowFrame.parent   = root;
+    glowFrame.position.set(0, 0, 0);
 
     // Point light for visibility
     const tileLight = new BABYLON.PointLight(`nTileLight_${index}`,
@@ -442,11 +439,14 @@ export function createNumbersCastleScene(engine, onExit) {
       _light: tileLight,
       update() {
         if (this.collected) return;
-        this._t += 0.028;
-        this.root.position.y = 1.5 + Math.sin(this._t) * 0.30;
-        this.root.rotation.y += 0.018;
-        // Pulse the glow ring
-        if (glow) glow.scaling.setAll(1.0 + Math.sin(this._t * 1.8) * 0.10);
+        this._t += 0.022;
+        this.root.position.y = 1.5 + Math.sin(this._t) * 0.25;
+        this.root.rotation.y += 0.015;
+        // Pulse the glow frame
+        if (glowFrame) {
+          const s = 1.0 + Math.sin(this._t * 1.6) * 0.06;
+          glowFrame.scaling.set(s, s, 1);
+        }
       }
     };
     numberTiles.push(tileObj);
@@ -546,10 +546,10 @@ export function createNumbersCastleScene(engine, onExit) {
   player.camera.alpha  = Math.PI / 2; // face toward vault (-Z)
 
   player.camera.radius           = DESIRED_RADIUS;
-  player.camera.lowerRadiusLimit = 3;
-  player.camera.upperRadiusLimit = 26;
-  player.camera.lowerBetaLimit   = 0.3;
-  player.camera.upperBetaLimit   = Math.PI / 2.15;
+  player.camera.lowerRadiusLimit = 2;
+  player.camera.upperRadiusLimit = 35;
+  player.camera.lowerBetaLimit   = 0.2;
+  player.camera.upperBetaLimit   = Math.PI / 2.05;
 
   // ── Order hint ───────────────────────────────────────────────────────────────
   function _showOrderHint() {
@@ -778,7 +778,7 @@ export function createNumbersCastleScene(engine, onExit) {
       const dRight    = Math.max(0.5, hw - px);
       const safe = Math.min(DESIRED_RADIUS, dBack * 0.85, dFront * 0.85, dLeft * 0.85, dRight * 0.85);
       player.camera.radius = BABYLON.Scalar.Lerp(player.camera.radius, Math.max(3.5, safe), 0.15);
-      player.camera.upperRadiusLimit = Math.max(Math.max(3.5, safe) + 2, 8);
+      player.camera.upperRadiusLimit = Math.max(Math.max(3.5, safe) + 4, 12);
 
       // Exit
       if (pz < -1.5 && typeof onExit === "function") onExit();

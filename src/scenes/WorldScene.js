@@ -639,11 +639,6 @@ function _buildLettersIsland(scene) {
   _buildHouse(scene, OX - 6, OZ - 2, new BABYLON.Color3(0.90, 0.85, 0.70), new BABYLON.Color3(0.65, 0.20, 0.10));
   _buildHouse(scene, OX + 6, OZ - 2, new BABYLON.Color3(0.80, 0.90, 0.78), new BABYLON.Color3(0.20, 0.55, 0.30));
 
-  // Letter tiles scattered as decoration around island
-  _buildLetterDecoration(scene, OX - 2, OZ + 5, "A");
-  _buildLetterDecoration(scene, OX + 2, OZ + 5, "B");
-  _buildLetterDecoration(scene, OX,     OZ + 6, "C");
-
   // Medieval props (async, non-blocking)
   _decorateMedievalIsland(scene, OX, OZ);
 }
@@ -929,29 +924,14 @@ function _buildNumbersIsland(scene) {
   _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(0.90, 0.80, 0.20));
   _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(0.90, 0.80, 0.20));
 
-  // Number decorations
-  _buildLetterDecoration(scene, OX - 2, OZ + 5, "1");
-  _buildLetterDecoration(scene, OX + 2, OZ + 5, "2");
-  _buildLetterDecoration(scene, OX,     OZ + 6, "3");
-
   // Medieval props (async, non-blocking)
   _decorateMedievalIsland(scene, OX, OZ);
 }
 
 // ── Medieval island decoration (async / fire-and-forget) ────────────────────
-// All models load in parallel for fast startup instead of sequential awaits.
+// Reduced prop set for fast loading — only castle entrance door and tower roofs.
 function _decorateMedievalIsland(scene, cx, cz) {
   const jobs = [];
-
-  // Wooden fence ring around island perimeter
-  const fenceAngles = [0, 45, 90, 135, 180, 225, 270, 315];
-  for (const deg of fenceAngles) {
-    const a = deg * Math.PI / 180;
-    const r = 10.2;
-    jobs.push(placeMedieval(scene, "Prop_WoodenFence_Single",
-      cx + Math.cos(a) * r, 0.05, cz + Math.sin(a) * r,
-      a + Math.PI / 2, 0.85));
-  }
 
   // Tower roofs (sit on top of existing procedural towers)
   const towerOffsets = [[-3.25, -2.75], [3.25, -2.75], [-3.25, 2.75], [3.25, 2.75]];
@@ -964,37 +944,7 @@ function _decorateMedievalIsland(scene, cx, cz) {
   jobs.push(placeMedieval(scene, "DoorFrame_Round_Brick",
     cx, 0.05, cz + 2.95, 0, 0.95));
 
-  // Vines on castle walls
-  jobs.push(placeMedieval(scene, "Prop_Vine1",
-    cx - 3.0, 0.05, cz + 2.9, Math.PI * 0.08, 1.1));
-  jobs.push(placeMedieval(scene, "Prop_Vine2",
-    cx + 3.0, 0.05, cz + 2.9, -Math.PI * 0.08, 1.1));
-  jobs.push(placeMedieval(scene, "Prop_Vine4",
-    cx - 3.3, 0.05, cz - 2.8, Math.PI, 1.0));
-  jobs.push(placeMedieval(scene, "Prop_Vine5",
-    cx + 3.3, 0.05, cz - 2.8, Math.PI, 1.0));
-
-  // Crates near castle entrance
-  jobs.push(placeMedieval(scene, "Prop_Crate",
-    cx - 2.6, 0.05, cz + 5.0, 0.4, 0.70));
-  jobs.push(placeMedieval(scene, "Prop_Crate",
-    cx + 2.6, 0.05, cz + 5.0, -0.5, 0.70));
-
-  // Wagon to the side of the castle
-  jobs.push(placeMedieval(scene, "Prop_Wagon",
-    cx - 6.2, 0.05, cz - 1.5, 0.6, 0.80));
-
-  // Brick path from castle door toward island edge
-  for (let i = 0; i < 4; i++) {
-    jobs.push(placeMedieval(scene, "Floor_Brick",
-      cx, 0.05, cz + 3.8 + i * 1.0, 0, 1.0));
-  }
-
-  // Launch all in parallel; stacked crate placed after its base lands
-  Promise.all(jobs).then(() => {
-    placeMedieval(scene, "Prop_Crate",
-      cx - 2.6, 0.52, cz + 4.8, 0.8, 0.55);
-  }).catch(e => console.warn("[MedievalDecor] Batch load error:", e));
+  Promise.all(jobs).catch(e => console.warn("[MedievalDecor] Batch load error:", e));
 }
 
 // ── Horse ──────────────────────────────────────────────────────────────────────
