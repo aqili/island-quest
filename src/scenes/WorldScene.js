@@ -994,7 +994,7 @@ function _decorateMedievalIsland(scene, cx, cz) {
   Promise.all(jobs).then(() => {
     placeMedieval(scene, "Prop_Crate",
       cx - 2.6, 0.52, cz + 4.8, 0.8, 0.55);
-  });
+  }).catch(e => console.warn("[MedievalDecor] Batch load error:", e));
 }
 
 // ── Horse ──────────────────────────────────────────────────────────────────────

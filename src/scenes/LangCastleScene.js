@@ -470,10 +470,10 @@ function _buildPuzzleSign(scene, z, idx, accentColor) {
   dt.update();
 
   const boardMat = new BABYLON.StandardMaterial("lSignBoard_" + idx, scene);
-  boardMat.diffuseColor   = new BABYLON.Color3(1.0, 1.0, 1.0);
-  boardMat.emissiveTexture = dt;
-  boardMat.emissiveColor  = new BABYLON.Color3(0.5, 0.4, 0.6);
-  boardMat.diffuseTexture  = dt;
+  boardMat.diffuseColor    = new BABYLON.Color3(1.0, 1.0, 1.0);
+  boardMat.emissiveTexture = dt;  // self-lit so text is always visible
+  boardMat.emissiveColor   = new BABYLON.Color3(0.5, 0.4, 0.6);
+  boardMat.diffuseTexture  = dt;  // also respond to scene lighting for depth
 
   const board = BABYLON.MeshBuilder.CreateBox("lSignBoard_" + idx,
     { width: 4.6, height: 2.0, depth: 0.12 }, scene);
