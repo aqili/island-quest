@@ -54,15 +54,18 @@ function switchScene(newScene) {
 
 function goToWorld() {
   SoundManager.startAmbient();
-  switchScene(
-    createWorldScene(
-      engine,
-      () => goToMathCastle(),      // onEnterMath
-      () => goToLangCastle(),      // onEnterLang
-      () => goToLettersCastle(),   // onEnterLetters
-      () => goToNumbersCastle()    // onEnterNumbers
-    )
+
+  const worldScene = createWorldScene(
+    engine,
+    () => goToMathCastle(),      // onEnterMath
+    () => goToLangCastle(),      // onEnterLang
+    () => goToLettersCastle(),   // onEnterLetters
+    () => goToNumbersCastle()    // onEnterNumbers
   );
+
+  // Switch immediately so the player can walk while props / textures finish
+  // loading in the background. No blocking overlay needed.
+  switchScene(worldScene);
 }
 
 function goToMathCastle() {
@@ -106,6 +109,17 @@ document.getElementById("btn-respawn").addEventListener("click", () => {
   goToWorld();
 });
 
+// ── Speed toggle button ──────────────────────────────────────────────────────
+window.iq_runMode = false;
+const btnSpeed = document.getElementById("btn-speed");
+if (btnSpeed) {
+  btnSpeed.addEventListener("click", () => {
+    window.iq_runMode = !window.iq_runMode;
+    btnSpeed.classList.toggle("active", window.iq_runMode);
+    btnSpeed.textContent = window.iq_runMode ? "🏃 Running" : "🏃 Run";
+  });
+}
+
 // ── Language toggle button ────────────────────────────────────────────────────
 
 const btnLang = document.getElementById("btn-lang");
@@ -138,15 +152,60 @@ try {
 const loadingScreen = _buildLoadingScreen();
 document.body.appendChild(loadingScreen);
 
-setTimeout(() => {
+// Wait for the Babylon engine to finish compiling shaders / loading textures
+// before showing the avatar selector, so the game feels instant once you press Play.
+function _showAvatarSelector() {
   loadingScreen.classList.add("hidden");
   setTimeout(() => {
     loadingScreen.remove();
-    // Show avatar selector — resolves when player clicks Play
     const avatarUI = _buildAvatarSelector();
     document.body.appendChild(avatarUI);
   }, 700);
-}, 1800);
+}
+
+// Wait for engine readiness, then show avatar selector
+if (engine.isReady && engine.isReady()) {
+  _showAvatarSelector();
+} else {
+  // Fallback: poll until ready (max 4s)
+  let _readyChecks = 0;
+  const _readyTimer = setInterval(() => {
+    _readyChecks++;
+    if ((engine.isReady && engine.isReady()) || _readyChecks > 40) {
+      clearInterval(_readyTimer);
+      _showAvatarSelector();
+    }
+  }, 100);
+}
+
+// ── Restart & Change Character ────────────────────────────────────────────────
+function _showAvatarAndRestart() {
+  // Stop current scene
+  engine.stopRenderLoop();
+  if (activeScene) { activeScene.dispose(); activeScene = null; }
+  // Clear any open puzzle overlay
+  const overlay = document.getElementById("ui-overlay");
+  if (overlay) { overlay.innerHTML = ""; overlay.classList.remove("active"); }
+  // Show avatar selector
+  const avatarUI = _buildAvatarSelector();
+  document.body.appendChild(avatarUI);
+}
+
+const btnRestart = document.getElementById("btn-restart");
+if (btnRestart) {
+  btnRestart.addEventListener("click", () => {
+    // Clear save data for a fresh start
+    SaveManager.reset();
+    _showAvatarAndRestart();
+  });
+}
+
+const btnChangeChar = document.getElementById("btn-change-char");
+if (btnChangeChar) {
+  btnChangeChar.addEventListener("click", () => {
+    _showAvatarAndRestart();
+  });
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -154,8 +213,14 @@ function _buildLoadingScreen() {
   const div = document.createElement("div");
   div.id = "loading-screen";
   div.innerHTML = `
-    <p class="logo">🏝️ Island Quest</p>
-    <p class="subtitle">Loading your adventure… please wait!</p>
+    <div class="loading-content">
+      <div class="loading-icon">🏝️</div>
+      <p class="logo">Island Quest</p>
+      <p class="subtitle">Loading your adventure…</p>
+      <div class="loading-bar-track">
+        <div class="loading-bar-fill"></div>
+      </div>
+    </div>
   `;
   return div;
 }

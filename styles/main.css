@@ -420,8 +420,36 @@ body {
   -webkit-user-select: none;
 }
 
+/* Mobile run button — positioned above the jump button */
+#btn-run-mobile {
+  display: none;
+  position: fixed;
+  bottom: 118px;
+  right: 34px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(60, 120, 220, 0.70);
+  border: 3px solid rgba(255,255,255,0.50);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 200;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.15s;
+}
+
+#btn-run-mobile.active {
+  background: rgba(255, 160, 40, 0.80);
+  border-color: rgba(255, 230, 100, 0.70);
+}
+
 @media (hover: none) and (pointer: coarse) {
   #btn-jump { display: flex; align-items: center; justify-content: center; }
+  #btn-run-mobile { display: flex; align-items: center; justify-content: center; }
 }
 
 @keyframes bannerFade {
@@ -454,6 +482,56 @@ body {
 
 #btn-respawn:active {
   transform: translateY(1px);
+}
+
+/* ===== Restart & Change Character buttons ===== */
+#btn-restart, #btn-change-char {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.0rem;
+  padding: 5px 14px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  white-space: nowrap;
+}
+#btn-restart:hover, #btn-change-char:hover {
+  background: rgba(255, 255, 255, 0.30);
+  transform: translateY(-2px);
+}
+#btn-restart:active, #btn-change-char:active {
+  transform: translateY(1px);
+}
+
+/* ===== Speed toggle button ===== */
+#btn-speed {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.0rem;
+  padding: 5px 14px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  white-space: nowrap;
+}
+#btn-speed:hover {
+  background: rgba(255, 255, 255, 0.30);
+  transform: translateY(-2px);
+}
+#btn-speed:active {
+  transform: translateY(1px);
+}
+#btn-speed.active {
+  background: rgba(255, 180, 50, 0.45);
+  color: #ffe066;
 }
 
 /* ===== Virtual Joystick ===== */
@@ -499,13 +577,12 @@ body {
 #loading-screen {
   position: fixed;
   inset: 0;
-  background: #1a6fa8;
+  background: linear-gradient(135deg, #0b2545 0%, #13547a 50%, #1a6fa8 100%);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 500;
-  transition: opacity 0.6s;
+  transition: opacity 0.8s ease;
 }
 
 #loading-screen.hidden {
@@ -513,16 +590,65 @@ body {
   pointer-events: none;
 }
 
+#loading-screen .loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: fadeSlideUp 0.6s ease-out;
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#loading-screen .loading-icon {
+  font-size: 4.5rem;
+  animation: floatIcon 2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));
+}
+
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
 #loading-screen .logo {
-  font-size: 3.5rem;
+  font-size: 3rem;
   color: #ffe066;
-  text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
-  margin-bottom: 12px;
+  text-shadow: 0 2px 16px rgba(255, 224, 102, 0.4), 0 1px 4px rgba(0,0,0,0.3);
+  margin: 0;
+  letter-spacing: 0.04em;
 }
 
 #loading-screen .subtitle {
-  font-size: 1.3rem;
-  color: #b3d9f5;
+  font-size: 1.15rem;
+  color: rgba(179, 217, 245, 0.85);
+  margin: 0;
+}
+
+.loading-bar-track {
+  width: 200px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.12);
+  margin-top: 18px;
+  overflow: hidden;
+}
+
+.loading-bar-fill {
+  width: 40%;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ffe066, #ffb347);
+  animation: loadingSlide 1.4s ease-in-out infinite;
+}
+
+@keyframes loadingSlide {
+  0%   { width: 20%; margin-left: 0; }
+  50%  { width: 50%; margin-left: 25%; }
+  100% { width: 20%; margin-left: 80%; }
 }
 /* ===== Language button ===== */
 #btn-lang {
@@ -541,28 +667,37 @@ body {
 
 /* ===== Mobile enhancements (max-width: 640px) ===== */
 @media (max-width: 640px) {
-  /* HUD — hide island name & stars, keep only crown + buttons */
+  /* HUD — compact top bar with essential buttons */
   #hud {
     padding: 6px 10px;
-    gap: 8px;
+    gap: 6px;
     background: rgba(0,0,0,0.55);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     border-bottom: 1px solid rgba(255,255,255,0.10);
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
   #hud-location { display: none; }
   #hud-stars    { display: none; }
-  #hud-crowns   { font-size: 1.3rem; }
+  #hud-crowns   { font-size: 1.3rem; margin-right: auto; }
   #btn-respawn  {
-    font-size: 0.95rem;
-    padding: 5px 12px;
+    font-size: 0.85rem;
+    padding: 4px 10px;
     background: rgba(255,255,255,0.15);
     border-radius: 10px;
   }
   #btn-lang {
-    font-size: 0.95rem;
-    padding: 4px 10px;
+    font-size: 0.85rem;
+    padding: 3px 8px;
+  }
+  #btn-restart, #btn-change-char {
+    font-size: 0.78rem;
+    padding: 3px 8px;
+  }
+  /* Hide HUD speed button on mobile — use the floating run button instead */
+  #btn-speed {
+    display: none;
   }
 
   /* Puzzle panel */
@@ -626,6 +761,11 @@ html[dir="rtl"] #joy-wrap {
 
 html[dir="rtl"] #btn-jump {
   right: 30px;
+  left: auto;
+}
+
+html[dir="rtl"] #btn-run-mobile {
+  right: 34px;
   left: auto;
 }
 

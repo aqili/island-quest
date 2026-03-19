@@ -128,6 +128,7 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   // ── HUD ───────────────────────────────────────────────────────────────────
   const hudLocation = document.getElementById("hud-location");
   const hudCrowns   = document.getElementById("hud-crowns");
+  let _lastCrownsText = "";
 
   function updateHUD() {
     const save = SaveManager.load();
@@ -137,7 +138,10 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       (save.lettersIsland  && save.lettersIsland.crownEarned)  ? "👑🔡" : "",
       (save.numbersIsland  && save.numbersIsland.crownEarned)  ? "👑🔟" : ""
     ].filter(Boolean).join("  ");
-    hudCrowns.textContent = crowns;
+    if (crowns !== _lastCrownsText) {
+      _lastCrownsText = crowns;
+      hudCrowns.textContent = crowns;
+    }
   }
   updateHUD();
 
@@ -146,11 +150,6 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
   let cloudT = 0;
 
   // ── Proximity / triggers ──────────────────────────────────────────────────
-  // Trigger on island CENTER so any approach direction works (radius 10 = inside grass)
-  const mathCenter    = new BABYLON.Vector3(-30, 0,  0);
-  const langCenter    = new BABYLON.Vector3( 30, 0,  0);
-  const lettersCenter = new BABYLON.Vector3(  0, 0, -55);
-  const numbersCenter = new BABYLON.Vector3(  0, 0,  55);
 
   scene.registerBeforeRender(() => {
     try {
@@ -163,17 +162,18 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       });
 
       // Update animals (isolated so errors never block door triggers)
-      animals.forEach(a => { try { a.update(); } catch(e) {} });
+      animals.forEach(a => { try { a.update(); } catch(e) { console.warn("Animal update error:", e); } });
 
       // Animate seagulls
-      seagulls.forEach(s => { try { s.update(); } catch(e) {} });
+      seagulls.forEach(s => { try { s.update(); } catch(e) { console.warn("Seagull update error:", e); } });
 
       const px = player.mesh.position;
 
-      const distMath    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(-30, px.y,   0));
-      const distLang    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3( 30, px.y,   0));
-      const distLetters = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(  0, px.y, -55));
-      const distNums    = BABYLON.Vector3.Distance(px, new BABYLON.Vector3(  0, px.y,  55));
+      // Use 2D horizontal distance (no per-frame Vector3 allocations)
+      const distMath    = Math.sqrt((px.x + 30) * (px.x + 30) + px.z * px.z);
+      const distLang    = Math.sqrt((px.x - 30) * (px.x - 30) + px.z * px.z);
+      const distLetters = Math.sqrt(px.x * px.x + (px.z + 55) * (px.z + 55));
+      const distNums    = Math.sqrt(px.x * px.x + (px.z - 55) * (px.z - 55));
 
       if (distMath < 15) {
         if (lastNearIsland !== "math")    { lastNearIsland = "math";    hudLocation.textContent = "🔢 Math Island"; }
@@ -187,23 +187,13 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
         if (lastNearIsland !== null) { lastNearIsland = null; hudLocation.textContent = "🌊 Open Ocean"; }
       }
 
-      // 2D horizontal distance only (ignore y) so slope/height never blocks entry
-      const pdx2 = px.x - mathCenter.x,    pdz2 = px.z - mathCenter.z;
-      const ldx2 = px.x - langCenter.x,    ldz2 = px.z - langCenter.z;
-      const letdx = px.x - lettersCenter.x, letdz = px.z - lettersCenter.z;
-      const numdx = px.x - numbersCenter.x,  numdz = px.z - numbersCenter.z;
-      const distM2 = Math.sqrt(pdx2*pdx2 + pdz2*pdz2);
-      const distL2 = Math.sqrt(ldx2*ldx2 + ldz2*ldz2);
-      const distLet = Math.sqrt(letdx*letdx + letdz*letdz);
-      const distNum = Math.sqrt(numdx*numdx + numdz*numdz);
-
-      if (!switching && distM2 < 10) {
+      if (!switching && distMath < 10) {
         switching = true; setTimeout(() => onEnterMath(), 0);
-      } else if (!switching && distL2 < 10) {
+      } else if (!switching && distLang < 10) {
         switching = true; setTimeout(() => onEnterLang(), 0);
-      } else if (!switching && onEnterLetters && distLet < 10) {
+      } else if (!switching && onEnterLetters && distLetters < 10) {
         switching = true; setTimeout(() => onEnterLetters(), 0);
-      } else if (!switching && onEnterNumbers && distNum < 10) {
+      } else if (!switching && onEnterNumbers && distNums < 10) {
         switching = true; setTimeout(() => onEnterNumbers(), 0);
       }
 
@@ -212,6 +202,16 @@ export function createWorldScene(engine, onEnterMath, onEnterLang, onEnterLetter
       console.error("WorldScene render error:", e);
     }
   });
+
+  // ── Deferred GLTF decoration loading ─────────────────────────────────────
+  // Load procedural world first (instant), then lazy-load GLTF models after
+  // the first frames have rendered so the player sees the world immediately.
+  setTimeout(() => {
+    _decorateMedievalIsland(scene, -30,   0);  // Math Island
+    _decorateMedievalIsland(scene,  30,   0);  // Language Island
+    _decorateMedievalIsland(scene,   0, -55);  // Letters Island
+    _decorateMedievalIsland(scene,   0,  55);  // Numbers Island
+  }, 100);
 
   return scene;
 }
@@ -285,9 +285,6 @@ function _buildMathIsland(scene) {
   // Lamp posts along path
   _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(1.0, 0.95, 0.6));
   _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(1.0, 0.95, 0.6));
-
-  // Medieval props (async, non-blocking)
-  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 // ── Language Island ───────────────────────────────────────────────────────────
@@ -318,9 +315,6 @@ function _buildLangIsland(scene) {
 
   _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(0.8, 0.6, 1.0));
   _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(0.8, 0.6, 1.0));
-
-  // Medieval props (async, non-blocking)
-  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 // ── Shared builders ───────────────────────────────────────────────────────────
@@ -648,14 +642,6 @@ function _buildLettersIsland(scene) {
   // Two houses on the island
   _buildHouse(scene, OX - 6, OZ - 2, new BABYLON.Color3(0.90, 0.85, 0.70), new BABYLON.Color3(0.65, 0.20, 0.10));
   _buildHouse(scene, OX + 6, OZ - 2, new BABYLON.Color3(0.80, 0.90, 0.78), new BABYLON.Color3(0.20, 0.55, 0.30));
-
-  // Letter tiles scattered as decoration around island
-  _buildLetterDecoration(scene, OX - 2, OZ + 5, "A");
-  _buildLetterDecoration(scene, OX + 2, OZ + 5, "B");
-  _buildLetterDecoration(scene, OX,     OZ + 6, "C");
-
-  // Medieval props (async, non-blocking)
-  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 function _buildHouse(scene, x, z, wallColor, roofColor) {
@@ -938,69 +924,59 @@ function _buildNumbersIsland(scene) {
 
   _buildLampPost(scene, OX - 1.2, OZ + 3.5, new BABYLON.Color3(0.90, 0.80, 0.20));
   _buildLampPost(scene, OX + 1.2, OZ + 3.5, new BABYLON.Color3(0.90, 0.80, 0.20));
-
-  // Number decorations
-  _buildLetterDecoration(scene, OX - 2, OZ + 5, "1");
-  _buildLetterDecoration(scene, OX + 2, OZ + 5, "2");
-  _buildLetterDecoration(scene, OX,     OZ + 6, "3");
-
-  // Medieval props (async, non-blocking)
-  _decorateMedievalIsland(scene, OX, OZ);
 }
 
 // ── Medieval island decoration (async / fire-and-forget) ────────────────────
-async function _decorateMedievalIsland(scene, cx, cz) {
-  // ── Wooden fence ring around island perimeter ─────────────────────────────
-  const fenceAngles = [0, 45, 90, 135, 180, 225, 270, 315];
-  for (const deg of fenceAngles) {
-    const a  = deg * Math.PI / 180;
-    const r  = 10.2;
-    await placeMedieval(scene, "Prop_WoodenFence_Single",
-      cx + Math.cos(a) * r, 0.05, cz + Math.sin(a) * r,
-      a + Math.PI / 2,  // face outward
-      0.85);
-  }
+// Enhanced prop set — realistic medieval decorations loaded after world is visible.
+function _decorateMedievalIsland(scene, cx, cz) {
+  const jobs = [];
 
-  // ── Tower roofs (sit on top of existing procedural towers) ────────────────
-  // Tower positions relative to castle center: (±3.25, ±2.75)
+  // Tower roofs (sit on top of existing procedural towers)
   const towerOffsets = [[-3.25, -2.75], [3.25, -2.75], [-3.25, 2.75], [3.25, 2.75]];
   for (const [tx, tz] of towerOffsets) {
-    await placeMedieval(scene, "Roof_Tower_RoundTiles",
-      cx + tx, 6.55, cz + tz, 0, 1.05);
+    jobs.push(placeMedieval(scene, "Roof_Tower_RoundTiles",
+      cx + tx, 6.55, cz + tz, 0, 1.05));
   }
 
-  // ── Castle entrance door frame ─────────────────────────────────────────────
-  await placeMedieval(scene, "DoorFrame_Round_Brick",
-    cx, 0.05, cz + 2.95, 0, 0.95);
+  // Castle entrance door frame
+  jobs.push(placeMedieval(scene, "DoorFrame_Round_Brick",
+    cx, 0.05, cz + 2.95, 0, 0.95));
 
-  // ── Vines on castle walls ──────────────────────────────────────────────────
-  await placeMedieval(scene, "Prop_Vine1",
-    cx - 3.0, 0.05, cz + 2.9, Math.PI * 0.08, 1.1);
-  await placeMedieval(scene, "Prop_Vine2",
-    cx + 3.0, 0.05, cz + 2.9, -Math.PI * 0.08, 1.1);
-  await placeMedieval(scene, "Prop_Vine4",
-    cx - 3.3, 0.05, cz - 2.8, Math.PI, 1.0);
-  await placeMedieval(scene, "Prop_Vine5",
-    cx + 3.3, 0.05, cz - 2.8, Math.PI, 1.0);
+  // Wall arch above entrance
+  jobs.push(placeMedieval(scene, "Wall_Arch",
+    cx, 2.55, cz + 2.95, 0, 0.80));
 
-  // ── Crates near castle entrance ────────────────────────────────────────────
-  await placeMedieval(scene, "Prop_Crate",
-    cx - 2.6, 0.05, cz + 5.0, 0.4, 0.70);
-  await placeMedieval(scene, "Prop_Crate",
-    cx + 2.6, 0.05, cz + 5.0, -0.5, 0.70);
-  // Stacked crate
-  await placeMedieval(scene, "Prop_Crate",
-    cx - 2.6, 0.52, cz + 4.8, 0.8, 0.55);
+  // Open window shutters on front wall
+  jobs.push(placeMedieval(scene, "WindowShutters_Wide_Round_Open",
+    cx - 2.0, 2.8, cz + 2.88, 0, 0.55));
+  jobs.push(placeMedieval(scene, "WindowShutters_Wide_Round_Open",
+    cx + 2.0, 2.8, cz + 2.88, 0, 0.55));
 
-  // ── Wagon to the side of the castle ───────────────────────────────────────
-  await placeMedieval(scene, "Prop_Wagon",
-    cx - 6.2, 0.05, cz - 1.5, 0.6, 0.80);
+  // Balcony on front face
+  jobs.push(placeMedieval(scene, "Balcony_Simple_Straight",
+    cx, 3.6, cz + 3.0, 0, 0.60));
 
-  // ── Brick path from castle door toward island edge ────────────────────────
-  for (let i = 0; i < 4; i++) {
-    await placeMedieval(scene, "Floor_Brick",
-      cx, 0.05, cz + 3.8 + i * 1.0, 0, 1.0);
-  }
+  // Wooden crate near entrance
+  jobs.push(placeMedieval(scene, "Prop_Crate",
+    cx + 1.8, 0.0, cz + 4.2, 0.3, 0.50));
+
+  // Chimney on roof
+  jobs.push(placeMedieval(scene, "Prop_Chimney",
+    cx - 1.5, 4.5, cz - 1.0, 0, 0.55));
+
+  // Vines on side walls for organic feel
+  jobs.push(placeMedieval(scene, "Prop_Vine1",
+    cx - 3.3, 2.0, cz + 1.5, 0, 0.65));
+  jobs.push(placeMedieval(scene, "Prop_Vine2",
+    cx + 3.3, 2.0, cz - 1.5, Math.PI, 0.65));
+
+  // Metal fence on one side of the castle entrance path
+  jobs.push(placeMedieval(scene, "Prop_MetalFence_Ornament",
+    cx - 1.8, 0.0, cz + 5.5, 0, 0.50));
+  jobs.push(placeMedieval(scene, "Prop_MetalFence_Ornament",
+    cx + 1.8, 0.0, cz + 5.5, 0, 0.50));
+
+  Promise.all(jobs).catch(e => console.warn("[MedievalDecor] Batch load error:", e));
 }
 
 // ── Horse ──────────────────────────────────────────────────────────────────────

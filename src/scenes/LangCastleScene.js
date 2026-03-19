@@ -23,7 +23,7 @@ const ROOMS = [
 const ROOM_LENGTH    = 40;
 const ROOM_WIDTH     = 80;
 const ROOM_HEIGHT    = 7.0;
-const DESIRED_RADIUS = 12;
+const DESIRED_RADIUS = 20;
 
 export function createLangCastleScene(engine, onExit) {
   const scene = new BABYLON.Scene(engine);
@@ -45,8 +45,10 @@ export function createLangCastleScene(engine, onExit) {
   player.mesh.position = new BABYLON.Vector3(0, 0.5, 10);
 
   player.camera.radius           = DESIRED_RADIUS;
-  player.camera.lowerRadiusLimit  = 3;
-  player.camera.upperRadiusLimit  = 28;
+  player.camera.lowerRadiusLimit  = 2;
+  player.camera.upperRadiusLimit  = 50;
+  player.camera.lowerBetaLimit    = 0.2;
+  player.camera.upperBetaLimit    = Math.PI / 2.05;
 
   const hudLocation = document.getElementById("hud-location");
   const hudStars    = document.getElementById("hud-stars");
@@ -87,7 +89,7 @@ export function createLangCastleScene(engine, onExit) {
     );
     const clampedR = Math.max(3.0, safeRadius);
     player.camera.radius = BABYLON.Scalar.Lerp(player.camera.radius, clampedR, 0.18);
-    player.camera.upperRadiusLimit = clampedR + 0.5;
+    player.camera.upperRadiusLimit = Math.max(clampedR + 8, 18);
 
     const roomIdx = Math.max(0, Math.min(3, Math.floor(pz / ROOM_LENGTH)));
     if (roomIdx !== currentRoom) {
@@ -277,14 +279,10 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
     exitArch.material = edMat;
   }
 
-  // ── Front wall with puzzle door ───────────────────────────────────────
+  // ── Front wall with open doorway arch ─────────────────────────────────
   const doorZ = baseZ + ROOM_LENGTH;
 
-  const frontWall = BABYLON.MeshBuilder.CreateBox("lFrontWall_" + idx,
-    { width: ROOM_WIDTH, height: ROOM_HEIGHT, depth: 0.40 }, scene);
-  frontWall.position = new BABYLON.Vector3(0, wallMidY, doorZ);
-  frontWall.material = stoneMat;
-
+  // Side wall segments flanking the doorway opening
   [[-22.0, 36.0], [22.0, 36.0]].forEach(([dx, dw], j) => {
     const seg = BABYLON.MeshBuilder.CreateBox("lDoorSeg_" + idx + j,
       { width: dw, height: ROOM_HEIGHT, depth: 0.40 }, scene);
@@ -292,11 +290,13 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
     seg.material = stoneMat;
   });
 
+  // Lintel above the doorway
   const topFill = BABYLON.MeshBuilder.CreateBox("lDoorTop_" + idx,
     { width: 4.2, height: 2.6, depth: 0.40 }, scene);
   topFill.position = new BABYLON.Vector3(0, 5.7, doorZ);
   topFill.material = stoneMat;
 
+  // Decorative arch above the doorway
   const archMat = new BABYLON.StandardMaterial("lArch_" + idx, scene);
   archMat.diffuseColor = new BABYLON.Color3(
     wallColor.r * 0.92, wallColor.g * 0.90, wallColor.b * 1.0);
@@ -305,6 +305,7 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
   doorArch.position = new BABYLON.Vector3(0, 4.6, doorZ);
   doorArch.material = archMat;
 
+  // Door slab — puzzle door that changes color when solved
   const doorSlab = BABYLON.MeshBuilder.CreateBox("lDoorSlab_" + idx,
     { width: 4.0, height: 4.4, depth: 0.28 }, scene);
   doorSlab.position = new BABYLON.Vector3(0, 2.2, doorZ);
@@ -321,6 +322,18 @@ function _buildRoom(scene, idx, wallColor, accentColor, doors, torchLights) {
     { diameter: 0.28, segments: 6 }, scene);
   handle.position = new BABYLON.Vector3(1.4, 2.4, doorZ - 0.20);
   handle.material = handleMat;
+
+  // ── Decorative pillar columns flanking doorway ────────────────────────
+  const doorPillarMat = medMaterial(scene, "RockTrim", "lDoorPillar_" + idx, 1, 4);
+  doorPillarMat.diffuseColor = new BABYLON.Color3(
+    wallColor.r * 0.95, wallColor.g * 0.92, wallColor.b * 1.0);
+  [-2.3, 2.3].forEach((px, pi) => {
+    const pillar = BABYLON.MeshBuilder.CreateCylinder(
+      "lDoorPil_" + idx + pi,
+      { diameter: 0.55, height: 4.4, tessellation: 10 }, scene);
+    pillar.position = new BABYLON.Vector3(px, 2.2, doorZ);
+    pillar.material = doorPillarMat;
+  });
 
   // ── Puzzle sign & floor marker ────────────────────────────────────────
   _buildPuzzleSign(scene, doorZ - 4.0, idx, accentColor);
@@ -432,14 +445,35 @@ function _buildPuzzleSign(scene, z, idx, accentColor) {
   const bh = 256;
   const dt = new BABYLON.DynamicTexture("lSignTex_" + idx,
     { width: boardSize, height: bh }, scene);
-  dt.drawText("ROOM " + (idx + 1),         null,  90, "bold 72px Arial", "#DDB8FF", "transparent", true, false);
-  dt.drawText("Language Challenge",        null, 162, "bold 44px Arial", "#9944CC", null,          true, false);
-  dt.drawText("Walk to the door to play!", null, 228, "34px Arial",      "#331144", null,          true, true);
-  dt.uScale = -1;
+  const ctx = dt.getContext();
+  // Dark purple background
+  ctx.fillStyle = "#1a0430";
+  ctx.fillRect(0, 0, boardSize, bh);
+  // Border
+  ctx.strokeStyle = "#9944CC";
+  ctx.lineWidth = 6;
+  ctx.strokeRect(3, 3, boardSize - 6, bh - 6);
+  // Title
+  ctx.fillStyle = "#DDB8FF";
+  ctx.font = "bold 72px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("ROOM " + (idx + 1), boardSize / 2, 60);
+  // Subtitle
+  ctx.fillStyle = "#CC88FF";
+  ctx.font = "bold 44px Arial";
+  ctx.fillText("Language Challenge", boardSize / 2, 128);
+  // Bottom hint
+  ctx.fillStyle = "#AA88DD";
+  ctx.font = "34px Arial";
+  ctx.fillText("Walk to the door to play!", boardSize / 2, 200);
+  dt.update();
 
   const boardMat = new BABYLON.StandardMaterial("lSignBoard_" + idx, scene);
-  boardMat.diffuseColor   = new BABYLON.Color3(0.10, 0.02, 0.18);
-  boardMat.diffuseTexture = dt;
+  boardMat.diffuseColor    = new BABYLON.Color3(1.0, 1.0, 1.0);
+  boardMat.emissiveTexture = dt;  // self-lit so text is always visible
+  boardMat.emissiveColor   = new BABYLON.Color3(0.5, 0.4, 0.6);
+  boardMat.diffuseTexture  = dt;  // also respond to scene lighting for depth
 
   const board = BABYLON.MeshBuilder.CreateBox("lSignBoard_" + idx,
     { width: 4.6, height: 2.0, depth: 0.12 }, scene);

@@ -197,6 +197,23 @@ export function createPlayer(scene) {
     if (!isJumping) { isJumping = true; jumpVelocity = JUMP_FORCE; }
   }, { passive: false });
 
+  // ── Mobile run button (next to jump) ────────────────────────────────────
+  const runBtn = document.createElement("button");
+  runBtn.id = "btn-run-mobile";
+  runBtn.textContent = "🏃";
+  document.body.appendChild(runBtn);
+  runBtn.addEventListener("touchstart", e => {
+    e.preventDefault();
+    window.iq_runMode = !window.iq_runMode;
+    runBtn.classList.toggle("active", window.iq_runMode);
+    // Keep the HUD button in sync
+    const hudSpeed = document.getElementById("btn-speed");
+    if (hudSpeed) {
+      hudSpeed.classList.toggle("active", window.iq_runMode);
+      hudSpeed.textContent = window.iq_runMode ? "🏃 Running" : "🏃 Run";
+    }
+  }, { passive: false });
+
   let activeTouchId = null;
   let baseX = 0, baseY = 0;
 
@@ -260,10 +277,17 @@ export function createPlayer(scene) {
     window.removeEventListener("touchcancel", _joyReset);
     if (joyWrap.parentNode) joyWrap.parentNode.removeChild(joyWrap);
     if (jumpBtn.parentNode) jumpBtn.parentNode.removeChild(jumpBtn);
+    if (runBtn.parentNode)  runBtn.parentNode.removeChild(runBtn);
   });
 
   const SPEED = 0.15;
+  const RUN_SPEED = 0.30;
   let walkTime = 0;
+
+  /** True when the player should be running (Shift held or Run button active). */
+  function _isRunning() {
+    return !!(keys["ShiftLeft"] || keys["ShiftRight"] || window.iq_runMode);
+  }
 
   const CAM_ROT = 0.035;   // radians per frame for arrow-key camera rotation
 
@@ -316,8 +340,10 @@ export function createPlayer(scene) {
       const worldDx = dx * Math.cos(camYaw) - dz * Math.sin(camYaw);
       const worldDz = dx * Math.sin(camYaw) + dz * Math.cos(camYaw);
 
-      root.position.x += worldDx * SPEED;
-      root.position.z += worldDz * SPEED;
+      // Use run speed when shift is held or run mode is active
+      const spd = _isRunning() ? RUN_SPEED : SPEED;
+      root.position.x += worldDx * spd;
+      root.position.z += worldDz * spd;
 
       if (worldDx !== 0 || worldDz !== 0) {
         root.rotation.y = Math.atan2(worldDx, worldDz);
@@ -325,13 +351,14 @@ export function createPlayer(scene) {
 
       // ── GLB: play walk/run animation ───────────────────────────────────
       if (_usingGLB) {
-        _switchGLBAnim(isJumping ? "jump" : "walk");
+        _switchGLBAnim(isJumping ? "jump" : (_isRunning() ? "run" : "walk"));
       } else {
         // Procedural walk cycle (skip if mid-air)
         if (!isJumping) {
-          walkTime += 0.18;
-          const swing  = Math.sin(walkTime) * 0.55;
-          const legBob = Math.abs(Math.sin(walkTime)) * 0.04;
+          const runMode = _isRunning();
+          walkTime += runMode ? 0.28 : 0.18;
+          const swing  = Math.sin(walkTime) * (runMode ? 0.75 : 0.55);
+          const legBob = Math.abs(Math.sin(walkTime)) * (runMode ? 0.06 : 0.04);
 
           lArmPivot.rotation.x =  swing;
           rArmPivot.rotation.x = -swing;
@@ -464,5 +491,12 @@ export function createPlayer(scene) {
     });
   }
 
-  return { mesh: root, update, camera };
+  return {
+    mesh: root,
+    update,
+    camera,
+    /** Toggle or set run mode. */
+    setRunning(v) { window.iq_runMode = !!v; },
+    isRunning()   { return window.iq_runMode; }
+  };
 }

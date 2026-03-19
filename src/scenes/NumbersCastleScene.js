@@ -22,7 +22,7 @@ export function createNumbersCastleScene(engine, onExit) {
   const ROOM_LENGTH   = 30;
   const ROOM_HEIGHT   = 7.0;
   const NUM_ROOMS     = 4;
-  const DESIRED_RADIUS = 12;
+  const DESIRED_RADIUS = 20;
 
   // ── Pick a random puzzle ────────────────────────────────────────────────────
   const puzzleData   = NUMBER_PUZZLES[Math.floor(Math.random() * NUMBER_PUZZLES.length)];
@@ -136,29 +136,22 @@ export function createNumbersCastleScene(engine, onExit) {
     // Entrance arch for the last room — castle gate where player enters
     if (r === NUM_ROOMS - 1) {
       const entZ = baseZ + ROOM_LENGTH;
-      const enm = new BABYLON.StandardMaterial("nEntMat", scene);
-      enm.diffuseColor  = new BABYLON.Color3(0.22, 0.32, 0.65);
-      enm.emissiveColor = new BABYLON.Color3(0.04, 0.08, 0.20);
 
-      // Left and right pillar segments
-      [[-11, 18], [11, 18]].forEach(([dx, dw], j) => {
-        const seg = BABYLON.MeshBuilder.CreateBox(`nEntSeg_${j}`,
-          { width: dw, height: ROOM_HEIGHT, depth: 0.5 }, scene);
-        seg.position.set(dx, cy, entZ);
-        seg.material = stoneMat;
-      });
-      const topFill = BABYLON.MeshBuilder.CreateBox("nEntTop",
-        { width: 4.2, height: 2.6, depth: 0.5 }, scene);
-      topFill.position.set(0, 5.7, entZ);
-      topFill.material = stoneMat;
+      // Pillar columns flanking the entrance
+      for (const sx of [-2.5, 2.5]) {
+        const pillar = BABYLON.MeshBuilder.CreateCylinder(`nEntPil_${sx}`,
+          { diameter: 0.6, height: ROOM_HEIGHT, tessellation: 10 }, scene);
+        pillar.position.set(sx, cy, entZ);
+        pillar.material = stoneMat;
+      }
 
       // Gold arch above entrance
       const archMat = new BABYLON.StandardMaterial("nEntArch", scene);
       archMat.diffuseColor  = new BABYLON.Color3(0.85, 0.70, 0.10);
       archMat.emissiveColor = new BABYLON.Color3(0.30, 0.22, 0.00);
       const arch = BABYLON.MeshBuilder.CreateSphere("nEntArchM",
-        { diameterX: 4.2, diameterY: 1.6, diameterZ: 0.5, segments: 8 }, scene);
-      arch.position.set(0, 4.6, entZ);
+        { diameterX: 5.4, diameterY: 1.6, diameterZ: 0.5, segments: 8 }, scene);
+      arch.position.set(0, 5.6, entZ);
       arch.material = archMat;
 
       // Welcome banner
@@ -199,30 +192,25 @@ export function createNumbersCastleScene(engine, onExit) {
     }
   }
 
-  // ── Door wall ───────────────────────────────────────────────────────────────
+  // ── Open doorway arch between rooms (no solid wall) ─────────────────────────
   function _buildDoorWall(r, doorWallZ) {
-    const hw = ROOM_WIDTH / 2;
-    const cy = ROOM_HEIGHT / 2;
+    const doorH = 5.5;
 
-    [[-11, 18], [11, 18]].forEach(([dx, dw], j) => {
-      const seg = BABYLON.MeshBuilder.CreateBox(`nDwSeg_${r}_${j}`,
-        { width: dw, height: ROOM_HEIGHT, depth: 0.4 }, scene);
-      seg.position.set(dx, cy, doorWallZ);
-      seg.material = stoneMat;
-    });
-
-    const topFill = BABYLON.MeshBuilder.CreateBox(`nDwTop_${r}`,
-      { width: 4.2, height: 2.6, depth: 0.4 }, scene);
-    topFill.position.set(0, 5.7, doorWallZ);
-    topFill.material = stoneMat;
+    // Pillar columns flanking the opening
+    for (const sx of [-2.5, 2.5]) {
+      const pillar = BABYLON.MeshBuilder.CreateCylinder(`nDwPil_${r}_${sx}`,
+        { diameter: 0.5, height: doorH, tessellation: 10 }, scene);
+      pillar.position.set(sx, doorH / 2, doorWallZ);
+      pillar.material = stoneMat;
+    }
 
     // Arch above door
     const archMat = new BABYLON.StandardMaterial(`nArch_${r}`, scene);
     archMat.diffuseColor  = new BABYLON.Color3(0.55, 0.80, 1.0);
     archMat.emissiveColor = new BABYLON.Color3(0.05, 0.20, 0.45);
-    const arch = BABYLON.MeshBuilder.CreateSphere(`nArch_${r}`,
-      { diameterX: 4.2, diameterY: 1.6, diameterZ: 0.44, segments: 8 }, scene);
-    arch.position.set(0, 4.6, doorWallZ);
+    const arch = BABYLON.MeshBuilder.CreateSphere(`nArchM_${r}`,
+      { diameterX: 5.4, diameterY: 1.6, diameterZ: 0.44, segments: 8 }, scene);
+    arch.position.set(0, doorH + 0.12, doorWallZ);
     arch.material = archMat;
 
     // Pulsing door beacons
@@ -298,25 +286,31 @@ export function createNumbersCastleScene(engine, onExit) {
   // ── Number room ─────────────────────────────────────────────────────────────
   function _buildNumberRoom(r, baseZ) {
     const midZ  = baseZ + ROOM_LENGTH / 2;
+    const hw    = ROOM_WIDTH / 2;
 
     // 2 tiles per room: indices (r-1)*2 and (r-1)*2+1
     const i0 = (r - 1) * 2;
     const i1 = i0 + 1;
 
+    // Wider scatter pool with more random placement across the room
     const positions = [
-      [-6, baseZ + 8],  [-6, baseZ + 20],
-      [ 6, baseZ + 8],  [ 6, baseZ + 20],
-      [-3, baseZ + 12], [ 3, baseZ + 18],
-      [-5, baseZ + 15], [ 5, baseZ + 10],
-      [ 0, baseZ + 14], [-4, baseZ + 22],
+      [-8, baseZ + 6],   [-8, baseZ + 16],  [-8, baseZ + 24],
+      [ 8, baseZ + 6],   [ 8, baseZ + 16],  [ 8, baseZ + 24],
+      [-4, baseZ + 10],  [ 4, baseZ + 10],
+      [-4, baseZ + 20],  [ 4, baseZ + 20],
+      [ 0, baseZ + 8],   [ 0, baseZ + 22],
+      [-6, baseZ + 13],  [ 6, baseZ + 13],
+      [-2, baseZ + 16],  [ 2, baseZ + 16],
     ];
-    // Pick 2 random spots for this room
-    const pool = positions.filter((_, idx) => idx < 10);
-    const picked = pool.sort(() => Math.random() - 0.5).slice(0, 2);
+    // Shuffle and pick 2 random spots
+    const picked = positions.sort(() => Math.random() - 0.5).slice(0, 2);
 
     [[i0, picked[0]], [i1, picked[1]]].forEach(([idx, pos]) => {
       if (idx >= TARGET_NUMS.length) return;
-      _buildNumberTile(idx, TARGET_NUMS[idx], pos[0], baseZ + (Math.random() * 20 + 5));
+      // Add extra random offset to each tile position
+      const rx = pos[0] + (Math.random() - 0.5) * 3;
+      const rz = pos[1] + (Math.random() - 0.5) * 4;
+      _buildNumberTile(idx, TARGET_NUMS[idx], rx, rz);
     });
 
     // Banner sign
@@ -338,72 +332,109 @@ export function createNumbersCastleScene(engine, onExit) {
     roomLight.range     = 18;
   }
 
-  // ── Number tile ─────────────────────────────────────────────────────────────
+  // ── Number tile (rectangular card style) ────────────────────────────────────
   function _buildNumberTile(index, num, x, z) {
     const root = new BABYLON.TransformNode(`nTile_${index}`, scene);
     root.position = new BABYLON.Vector3(x, 1.5, z);
 
-    // Base disc
-    const discMat = new BABYLON.StandardMaterial(`nDisc_${index}`, scene);
-    discMat.diffuseColor  = new BABYLON.Color3(0.85, 0.70, 0.10);
-    discMat.emissiveColor = new BABYLON.Color3(0.25, 0.18, 0.00);
-    const disc = BABYLON.MeshBuilder.CreateCylinder(`nDiscM_${index}`,
-      { diameter: 1.2, height: 0.18, tessellation: 12 }, scene);
-    disc.material = discMat;
-    disc.parent   = root;
-    disc.position.set(0, 0, 0);
+    // Cycle through 6 distinct vibrant colors
+    const PALETTE = [
+      [0.20, 0.60, 1.00],  // blue
+      [0.95, 0.30, 0.25],  // red
+      [0.15, 0.80, 0.40],  // green
+      [0.90, 0.55, 0.10],  // orange
+      [0.70, 0.25, 0.90],  // purple
+      [0.95, 0.75, 0.05],  // gold
+    ];
+    const pal = PALETTE[index % PALETTE.length];
 
-    // Number label using DynamicTexture
-    const numMat = new BABYLON.StandardMaterial(`nNumMat_${index}`, scene);
+    // Rectangular card body
+    const cardMat = new BABYLON.StandardMaterial(`nCard_${index}`, scene);
+    cardMat.diffuseColor  = new BABYLON.Color3(pal[0], pal[1], pal[2]);
+    cardMat.emissiveColor = new BABYLON.Color3(pal[0] * 0.3, pal[1] * 0.3, pal[2] * 0.3);
+    cardMat.specularColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+    cardMat.specularPower = 24;
+    const card = BABYLON.MeshBuilder.CreateBox(`nCardM_${index}`,
+      { width: 1.6, height: 2.0, depth: 0.25 }, scene);
+    card.material = cardMat;
+    card.parent   = root;
+    card.position.set(0, 0, 0);
+
+    // Number face — DynamicTexture painted on front
+    const faceMat = new BABYLON.StandardMaterial(`nFaceMat_${index}`, scene);
     try {
-      const dt = new BABYLON.DynamicTexture(`nNumTex_${index}`, { width: 128, height: 128 }, scene, false);
+      const sz = 256;
+      const dt = new BABYLON.DynamicTexture(`nNumTex_${index}`, { width: sz, height: sz }, scene, false);
       const ctx = dt.getContext();
-      // Gold background
-      ctx.fillStyle = "#FFD700";
-      ctx.fillRect(0, 0, 128, 128);
-      // Border
-      ctx.strokeStyle = "#8B6914";
-      ctx.lineWidth = 6;
-      ctx.strokeRect(4, 4, 120, 120);
-      // Number text
-      ctx.fillStyle = "#1a1050";
-      ctx.font = "bold 78px Arial";
+      // Card-like background
+      const r255 = Math.round(pal[0] * 255);
+      const g255 = Math.round(pal[1] * 255);
+      const b255 = Math.round(pal[2] * 255);
+      ctx.fillStyle = `rgb(${Math.floor(r255*0.15)},${Math.floor(g255*0.15)},${Math.floor(b255*0.15)})`;
+      ctx.fillRect(0, 0, sz, sz);
+      // Rounded border in tile color
+      ctx.strokeStyle = `rgb(${r255},${g255},${b255})`;
+      ctx.lineWidth = 10;
+      ctx.strokeRect(10, 10, sz - 20, sz - 20);
+      // Large number
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 150px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(String(num), 64, 68);
+      ctx.fillText(String(num), sz / 2, sz / 2);
       dt.update();
-      numMat.diffuseTexture  = dt;
-      numMat.emissiveTexture = dt;
-      numMat.emissiveColor   = new BABYLON.Color3(0.9, 0.75, 0.0);
-      numMat.backFaceCulling = false;
+      faceMat.diffuseTexture  = dt;
+      faceMat.emissiveTexture = dt;
+      faceMat.emissiveColor   = new BABYLON.Color3(0.6, 0.6, 0.6);
+      faceMat.backFaceCulling = false;
     } catch(e) {
-      numMat.diffuseColor = new BABYLON.Color3(0.95, 0.75, 0.0);
+      faceMat.diffuseColor = new BABYLON.Color3(1.0, 1.0, 1.0);
     }
 
-    const face = BABYLON.MeshBuilder.CreateBox(`nFace_${index}`,
-      { width: 0.9, height: 0.9, depth: 0.05 }, scene);
-    face.material = numMat;
+    const face = BABYLON.MeshBuilder.CreatePlane(`nFace_${index}`,
+      { width: 1.4, height: 1.8 }, scene);
+    face.material = faceMat;
     face.parent   = root;
-    face.position.set(0, 0.15, 0);
+    face.position.set(0, 0, 0.13);
 
-    // Glow particle sphere underneath
+    // Back face (same number visible from behind)
+    const backFace = face.clone(`nFaceBack_${index}`);
+    backFace.parent = root;
+    backFace.position.set(0, 0, -0.13);
+    backFace.rotation.y = Math.PI;
+
+    // Glow outline around the rectangular card
     const glowMat = new BABYLON.StandardMaterial(`nGlow_${index}`, scene);
-    glowMat.diffuseColor  = new BABYLON.Color3(0.3, 0.6, 1.0);
-    glowMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.6);
-    const glow = BABYLON.MeshBuilder.CreateSphere(`nGlowM_${index}`,
-      { diameter: 0.4, segments: 6 }, scene);
-    glow.material = glowMat;
-    glow.parent   = root;
-    glow.position.set(0, -0.25, 0);
+    glowMat.diffuseColor  = new BABYLON.Color3(pal[0], pal[1], pal[2]);
+    glowMat.emissiveColor = new BABYLON.Color3(pal[0] * 0.5, pal[1] * 0.5, pal[2] * 0.5);
+    glowMat.alpha = 0.4;
+    const glowFrame = BABYLON.MeshBuilder.CreateBox(`nGlowF_${index}`,
+      { width: 1.9, height: 2.3, depth: 0.08 }, scene);
+    glowFrame.material = glowMat;
+    glowFrame.parent   = root;
+    glowFrame.position.set(0, 0, 0);
+
+    // Point light for visibility
+    const tileLight = new BABYLON.PointLight(`nTileLight_${index}`,
+      new BABYLON.Vector3(x, 2.5, z), scene);
+    tileLight.diffuse   = new BABYLON.Color3(pal[0], pal[1], pal[2]);
+    tileLight.intensity = 0.7;
+    tileLight.range     = 6;
 
     const tileObj = {
       root, num, index, collected: false,
       _t: Math.random() * Math.PI * 2,
+      _light: tileLight,
       update() {
         if (this.collected) return;
-        this._t += 0.025;
-        this.root.position.y = 1.5 + Math.sin(this._t) * 0.22;
-        this.root.rotation.y += 0.022;
+        this._t += 0.022;
+        this.root.position.y = 1.5 + Math.sin(this._t) * 0.25;
+        this.root.rotation.y += 0.015;
+        // Pulse the glow frame
+        if (glowFrame) {
+          const s = 1.0 + Math.sin(this._t * 1.6) * 0.06;
+          glowFrame.scaling.set(s, s, 1);
+        }
       }
     };
     numberTiles.push(tileObj);
@@ -503,8 +534,10 @@ export function createNumbersCastleScene(engine, onExit) {
   player.camera.alpha  = Math.PI / 2; // face toward vault (-Z)
 
   player.camera.radius           = DESIRED_RADIUS;
-  player.camera.lowerRadiusLimit = 3;
-  player.camera.upperRadiusLimit = 22;
+  player.camera.lowerRadiusLimit = 2;
+  player.camera.upperRadiusLimit = 50;
+  player.camera.lowerBetaLimit   = 0.2;
+  player.camera.upperBetaLimit   = Math.PI / 2.05;
 
   // ── Order hint ───────────────────────────────────────────────────────────────
   function _showOrderHint() {
@@ -702,6 +735,7 @@ export function createNumbersCastleScene(engine, onExit) {
               tile.collected = true;
               collectedNumbers.push(tile.num);
               tile.root.setEnabled(false);
+              if (tile._light) tile._light.setEnabled(false);
               _showCollectBanner(tile.num);
               SoundManager.playCollect();
               _updateHUD();
@@ -732,7 +766,7 @@ export function createNumbersCastleScene(engine, onExit) {
       const dRight    = Math.max(0.5, hw - px);
       const safe = Math.min(DESIRED_RADIUS, dBack * 0.85, dFront * 0.85, dLeft * 0.85, dRight * 0.85);
       player.camera.radius = BABYLON.Scalar.Lerp(player.camera.radius, Math.max(3.5, safe), 0.15);
-      player.camera.upperRadiusLimit = Math.max(3.5, safe) + 0.5;
+      player.camera.upperRadiusLimit = Math.max(Math.max(3.5, safe) + 8, 18);
 
       // Exit
       if (pz < -1.5 && typeof onExit === "function") onExit();
